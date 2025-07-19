@@ -1,0 +1,48 @@
+package utils
+
+import (
+	"context"
+
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/messaging"
+	"google.golang.org/api/option"
+)
+
+var client *messaging.Client
+
+func InitNotifier() error {
+	if client != nil {
+		return nil
+	}
+	ctx := context.Background()
+	opt := option.WithCredentialsFile("google_services.json")
+	app, err := firebase.NewApp(ctx, nil, opt)
+
+	if err != nil {
+		return err
+	}
+
+	client, err = app.Messaging(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SendMessage(token string, plantName string) {
+	if client == nil {
+		InitNotifier()
+	}
+
+	ctx := context.Background()
+
+	message := &messaging.Message{
+		Token: token,
+		Notification: &messaging.Notification{
+			Title: "Hello from Plantie!",
+			Body:  "Time to water your plant " + plantName,
+		},
+	}
+	client.Send(ctx, message)
+}

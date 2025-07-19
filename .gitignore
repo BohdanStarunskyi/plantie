@@ -1,0 +1,58 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, output of `go test -c`
+*.test
+
+# Output of `go build`
+*.out
+
+# Go workspace file (if you're using Go workspaces)
+go.work
+go.work.sum
+
+# Dependency directories (if using vendoring)
+vendor/
+
+# Go modules
+go.sum
+
+# IDE/editor specific files
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage files
+*.cover
+*.coverprofile
+*.cov
+coverage.out
+
+# Build artifacts
+build/
+bin/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+
+# GitHub Codespaces
+.devcontainer/
+
+#Environment variables
+.env
+
+#Google Services
+google_services.json
