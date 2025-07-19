@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"plant-reminder/models"
 	"strconv"
@@ -14,6 +15,7 @@ func AddPlant(ctx *gin.Context) {
 	var plant models.Plant
 	err := ctx.ShouldBindJSON(&plant)
 	if err != nil {
+		log.Printf("AddPlant: failed to bind JSON: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -21,7 +23,8 @@ func AddPlant(ctx *gin.Context) {
 
 	err = plant.Save()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("AddPlant: failed to save plant: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{"plant": plant})
@@ -31,25 +34,28 @@ func GetPlant(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
 	plantId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
+		log.Printf("GetPlant: invalid plant id: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	plant, err := models.GetPlant(plantId, userId)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("GetPlant: failed to get plant: %v", err)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"plant": plant})
+	ctx.JSON(http.StatusOK, gin.H{"plant": plant})
 }
 
 func GetPlants(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
 	plants, err := models.GetPlants(userID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("GetPlants: failed to get plants: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"plants": plants})
+	ctx.JSON(http.StatusOK, gin.H{"plants": plants})
 }
 
 func UpdatePlant(ctx *gin.Context) {
@@ -59,35 +65,40 @@ func UpdatePlant(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&plant)
 
 	if err != nil {
+		log.Printf("UpdatePlant: failed to bind JSON: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if plant.ID == 0 {
+		log.Printf("UpdatePlant: invalid plant ID")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "plantId must be valid"})
 		return
 	}
 
 	err = plant.Update(userId)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("UpdatePlant: failed to update plant: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"plant": plant})
+	ctx.JSON(http.StatusOK, gin.H{"plant": plant})
 }
 
 func DeletePlant(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
 	plantId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
+		log.Printf("DeletePlant: invalid plant id: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	err = models.DeletePlant(userId, plantId)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("DeletePlant: failed to delete plant: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"plantId": plantId})
+	ctx.JSON(http.StatusNoContent, nil)
 }
