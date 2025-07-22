@@ -39,9 +39,9 @@ func SendMessage(token string, plantName string) {
 
 	message := &messaging.Message{
 		Token: token,
-		Notification: &messaging.Notification{
-			Title: "Hello from Plantie!",
-			Body:  "Time to water your plant " + plantName,
+		Data: map[string]string{
+			"title": "Hello from Plantie!",
+			"body":  "Time to water your plant " + plantName,
 		},
 	}
 	client.Send(ctx, message)
