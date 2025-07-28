@@ -49,11 +49,11 @@ func setupServer() *http.Server {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = ":8080"
+		port = "8080"
 	}
 
 	return &http.Server{
-		Addr:    port,
+		Addr:    ":" + port,
 		Handler: router,
 	}
 }
