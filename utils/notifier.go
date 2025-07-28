@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"os"
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/messaging"
@@ -15,7 +16,7 @@ func InitNotifier() error {
 		return nil
 	}
 	ctx := context.Background()
-	opt := option.WithCredentialsFile("google_services.json")
+	opt := option.WithCredentialsFile(os.Getenv("FIREBASE_PATH"))
 	app, err := firebase.NewApp(ctx, nil, opt)
 
 	if err != nil {
