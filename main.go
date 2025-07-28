@@ -91,14 +91,15 @@ func initDatabase() {
 
 func runMigrations() {
 	err := config.DB.AutoMigrate(&models.User{}, &models.Plant{}, &models.Reminder{})
+
 	if err != nil {
-		log.Fatalf("Failed to migrate models: %v", err)
+		log.Fatalf("failed to migrate models: %v", err)
 	}
 }
 
 func setupCrons() {
 	if err := models.SetReminders(); err != nil {
-		log.Fatalf("Failed to start cron jobs: %v", err)
+		log.Fatalf("failed to start cron jobs: %v", err)
 	}
 }
 
