@@ -11,11 +11,11 @@ import (
 
 type User struct {
 	ID           int64     `gorm:"primaryKey" json:"id"`
-	Email        string    `binding:"required" gorm:"unique" json:"email"`
-	Password     string    `binding:"required" json:"-"`
-	Name         string    `json:"name"`
+	Email        string    `json:"email" validate:"required,email"`
+	Password     string    `json:"password,omitempty" validate:"required,min=6"`
+	Name         string    `json:"name" validate:"omitempty,min=2,max=100"`
 	CreationDate time.Time `json:"createdAt"`
-	PushToken    string    `binding:"-" json:"-"`
+	PushToken    string    `json:"-"`
 }
 
 func userExists(email string) (bool, error) {

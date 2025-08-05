@@ -3,36 +3,45 @@ package controllers
 import (
 	"net/http"
 	"plant-reminder/models"
+	"plant-reminder/utils"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/gin-gonic/gin"
 )
 
 func AddReminder(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
-	plantIdStr := ctx.Param("id")
-	plantID, err := strconv.ParseInt(plantIdStr, 10, 64)
+	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		log.Printf("AddReminder: invalid plant id: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid plant ID"})
 		return
 	}
+
 	var reminder models.Reminder
-	err = ctx.ShouldBindJSON(&reminder)
-	if err != nil {
+	if err := ctx.ShouldBindJSON(&reminder); err != nil {
 		log.Printf("AddReminder: failed to bind JSON: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON format"})
+		return
+	}
+
+	if err := utils.Validate.Struct(reminder); err != nil {
+		log.Printf("AddReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	reminder.UserID = userID
 	reminder.PlantID = plantID
-	err = reminder.Save()
-	if err != nil {
+
+	if err := reminder.Save(); err != nil {
 		log.Printf("AddReminder: failed to save reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusCreated, gin.H{"reminder": reminder})
 }
 
@@ -85,33 +94,40 @@ func DeleteReminder(ctx *gin.Context) {
 }
 
 func UpdateReminder(ctx *gin.Context) {
-	userId := ctx.GetInt64("userID")
-	plantIdStr := ctx.Param("id")
-	plantID, err := strconv.ParseInt(plantIdStr, 10, 64)
+	userID := ctx.GetInt64("userID")
+	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		log.Printf("UpdateReminder: invalid plant id: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	var reminder models.Reminder
-	err = ctx.ShouldBindJSON(&reminder)
-	if err != nil {
-		log.Printf("UpdateReminder: failed to bind JSON: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	reminder.PlantID = plantID
-	if reminder.ID == 0 {
-		log.Printf("UpdateReminder: invalid reminder ID")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "reminderId must be valid"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid plant ID"})
 		return
 	}
 
-	err = reminder.Update(userId)
-	if err != nil {
+	var reminder models.Reminder
+	if err := ctx.ShouldBindJSON(&reminder); err != nil {
+		log.Printf("UpdateReminder: failed to bind JSON: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON format"})
+		return
+	}
+
+	if reminder.ID == 0 {
+		log.Printf("UpdateReminder: invalid reminder ID")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "reminder ID must be set"})
+		return
+	}
+
+	if err := utils.Validate.Struct(reminder); err != nil {
+		log.Printf("UpdateReminder: validation failed: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	reminder.PlantID = plantID
+
+	if err := reminder.Update(userID); err != nil {
 		log.Printf("UpdateReminder: failed to update reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{"reminder": reminder})
 }

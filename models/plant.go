@@ -7,12 +7,12 @@ import (
 
 type Plant struct {
 	ID       int64  `gorm:"primaryKey" json:"id"`
-	Name     string `binding:"required" json:"name"`
+	Name     string `json:"name" validate:"required"`
 	Note     string `json:"note"`
-	TagColor string `binding:"required" json:"tagColor"`
+	TagColor string `json:"tagColor" validate:"required"`
 
 	UserID int64 `json:"-"`
-	User   User  `gorm:"foreignKey:UserID" binding:"-" json:"-"`
+	User   User  `gorm:"foreignKey:UserID" json:"-"`
 }
 
 func (p *Plant) Save() error {
