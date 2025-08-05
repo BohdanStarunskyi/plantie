@@ -26,6 +26,12 @@ func VerifyAuth(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "invalid token claims"})
 		return
 	}
+	
+	// Verify it's an access token
+	if tokenType, exists := claims["type"]; !exists || tokenType != "access" {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "invalid token type"})
+		return
+	}
 
 	userID, ok := claims["userID"].(float64)
 	if !ok {

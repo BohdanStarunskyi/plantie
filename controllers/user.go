@@ -8,6 +8,7 @@ import (
 	"plant-reminder/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func Login(ctx *gin.Context) {
@@ -26,12 +27,29 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	token, verifiedUser, err := models.VerifyUser(user.Email, user.Password)
+	verifiedUser, err := models.VerifyUser(user.Email, user.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"token": token, "user": verifiedUser})
+
+	accessToken, err := utils.SignPayload(verifiedUser.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := utils.SignRefreshToken(verifiedUser.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"user":          verifiedUser,
+	})
 }
 
 func SignUp(ctx *gin.Context) {
@@ -46,12 +64,77 @@ func SignUp(ctx *gin.Context) {
 		return
 	}
 
-	token, err := user.CreateUser()
+	err := user.CreateUser()
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
+
+	accessToken, err := utils.SignPayload(user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := utils.SignRefreshToken(user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"user":          user,
+	})
+}
+
+func RefreshToken(ctx *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "refresh token is required"})
+		return
+	}
+
+	token, err := utils.VerifyRefreshToken(req.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
+		return
+	}
+
+	userID, ok := claims["userID"].(float64)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid userID in token"})
+		return
+	}
+
+	// Generate new access token
+	newAccessToken, err := utils.SignPayload(int64(userID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate new access token"})
+		return
+	}
+
+	// Generate new refresh token
+	newRefreshToken, err := utils.SignRefreshToken(int64(userID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate new refresh token"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken,
+	})
 }
 
 func SetPushToken(ctx *gin.Context) {

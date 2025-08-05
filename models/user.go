@@ -27,40 +27,38 @@ func userExists(email string) (bool, error) {
 	return result.Error == nil, result.Error
 }
 
-func (u *User) CreateUser() (string, error) {
+func (u *User) CreateUser() error {
 	exists, _ := userExists(u.Email)
 	if exists {
-		return "", errors.New("user with such email already exists")
+		return errors.New("user with such email already exists")
 	}
 
 	hashedPassword, err := utils.HashPassword(u.Password)
 	if err != nil {
-		return "", err
+		return err
 	}
 	u.CreationDate = time.Now()
 	u.Password = hashedPassword
 
 	result := config.DB.Create(&u)
 	if result.Error != nil {
-		return "", errors.New("error while writing to database")
+		return errors.New("error while writing to database")
 	}
-	token, err := utils.SignPayload(u.ID)
 
-	return token, err
+	return nil
 }
 
-func VerifyUser(email string, password string) (string, *User, error) {
+func VerifyUser(email string, password string) (*User, error) {
 	var user User
 	result := config.DB.Where("email = ?", email).First(&user)
 	if result.Error != nil {
-		return "", nil, result.Error
+		return nil, result.Error
 	}
 	if err := utils.CheckPassword(user.Password, password); err != nil {
-		return "", nil, errors.New("wrong credentials")
+		return nil, errors.New("wrong credentials")
 	}
 
-	token, err := utils.SignPayload(user.ID)
-	return token, &user, err
+	return &user, nil
 }
 
 func SetPushToken(userID string, token string) error {
