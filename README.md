@@ -6,22 +6,27 @@ Plantie is a backend API for a plant watering reminder application. It helps use
 
 ## Features
 
-- **User Authentication**: Sign up and log in securely.
-- **Plant Management**: Add, update, view, and delete your plants.
-- **Reminders**: Set, update, view, and delete watering reminders for each plant.
-- **Push Notifications**: Receive notifications when it’s time to water your plants (via Firebase).
-- **Healthcheck**: Simple endpoint to check if the server is running.
+- **User Authentication**: Secure sign up, login, and token refresh with JWT
+- **Plant Management**: Add, update, view, and delete your plants
+- **Reminders**: Set, update, view, and delete watering reminders for each plant
+- **Push Notifications**: Receive notifications when it's time to water your plants (via Firebase Cloud Messaging)
+- **Cron Jobs**: Automated reminder scheduling and notification delivery
+- **Healthcheck**: Simple endpoint to check if the server is running
+- **Graceful Shutdown**: Proper server shutdown handling
 
 ---
 
 ## Tech Stack
 
-- **Language**: Go (Golang)
+- **Language**: Go 1.24.0
 - **Framework**: Gin (HTTP web framework)
 - **Database**: PostgreSQL (via GORM ORM)
-- **Authentication**: JWT (JSON Web Tokens)
+- **Authentication**: JWT (JSON Web Tokens) with refresh tokens
 - **Notifications**: Firebase Cloud Messaging
-- **Other**: godotenv, cron jobs for reminders
+- **Scheduling**: GoCron for reminder management
+- **Validation**: Go Playground Validator
+- **CORS**: Built-in CORS support
+- **Environment**: godotenv for configuration
 
 ---
 
@@ -34,12 +39,14 @@ The project follows the **MVC (Model-View-Controller)** pattern:
 - **Routes**: API endpoint definitions (`routes/`)
 - **Middleware**: Authentication and other request pre-processing (`middleware/`)
 - **Utils**: Utility functions (JWT, password hashing, notifications, etc.)
+- **Config**: Database and application configuration (`config/`)
+- **Constants**: Application constants (`constants/`)
 
 ---
 
 ## API Endpoints
 
-All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `Authorization: Bearer <token>` header.
+All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid JWT in the `Authorization: Bearer <token>` header.
 
 ### Healthcheck
 
@@ -49,12 +56,16 @@ All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `
 ### Authentication
 
 - **POST `/signup`**
-  - **Body**: `{ "email": string, "password": string }`
-  - **Response**: `{ "token": string, "user": { ... } }`
+  - **Body**: `{ "email": string, "password": string, "name": string }`
+  - **Response**: `{ "access_token": string, "refresh_token": string, "user": { ... } }`
 
 - **POST `/login`**
   - **Body**: `{ "email": string, "password": string }`
-  - **Response**: `{ "token": string, "user": { ... } }`
+  - **Response**: `{ "access_token": string, "refresh_token": string, "user": { ... } }`
+
+- **POST `/refresh`**
+  - **Body**: `{ "refresh_token": string }`
+  - **Response**: `{ "access_token": string, "refresh_token": string }`
 
 ### User
 
@@ -65,7 +76,7 @@ All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `
 ### Plants
 
 - **POST `/plant`**
-  - **Body**: `{ "name": string, ... }`
+  - **Body**: `{ "name": string, "note": string, "tagColor": string }`
   - **Response**: `{ "plant": { ... } }`
 
 - **GET `/plant/:id`**
@@ -75,7 +86,7 @@ All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `
   - **Response**: `{ "plants": [ ... ] }`
 
 - **PUT `/plant`**
-  - **Body**: `{ "id": number, ... }`
+  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string }`
   - **Response**: `{ "plant": { ... } }`
 
 - **DELETE `/plant/:id`**
@@ -84,14 +95,14 @@ All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `
 ### Reminders
 
 - **POST `/plant/:id/reminder`**
-  - **Body**: `{ "repeatType": string, "time": string, ... }`
+  - **Body**: `{ "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
   - **Response**: `{ "reminder": { ... } }`
 
 - **GET `/plant/:id/reminders`**
   - **Response**: `{ "reminders": [ ... ] }`
 
 - **PUT `/plant/:id/reminder`**
-  - **Body**: `{ "id": number, ... }`
+  - **Body**: `{ "id": number, "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
   - **Response**: `{ "reminder": { ... } }`
 
 - **DELETE `/plant/:id/reminder/:reminderId`**
@@ -103,30 +114,108 @@ All endpoints (except `/ping`, `/login`, `/signup`) require a valid JWT in the `
 
 Create a `.env` file in the project root with the following variables:
 
+### Required Variables
 - `DB_URL` – PostgreSQL connection string (e.g., `postgres://user:password@localhost:5432/plantie`)
-- `JWT_KEY` – Secret key for signing JWT tokens
-- `PORT` – (Optional) Port for the server (default: `:8080`)
+- `JWT_KEY` – Secret key for signing JWT tokens (should be at least 32 characters)
 
-Also, ensure you have a valid `google_services.json` file for Firebase Cloud Messaging in the project root.
+### Optional Variables
+- `PORT` – Port for the server (default: `8080`)
+- `ENV` – Environment mode (`production` or development, default: development)
+
+### Firebase Configuration
+Ensure you have a valid `google_services.json` file for Firebase Cloud Messaging in the project root.
 
 ---
 
 ## Getting Started
 
+### Prerequisites
+- Go 1.24.0 or higher
+- PostgreSQL database
+- Firebase project with Cloud Messaging enabled
+
+### Installation
+
 1. **Clone the repository**
-2. **Install dependencies**:  
+   ```bash
+   git clone <repository-url>
+   cd plantie
    ```
+
+2. **Install dependencies**
+   ```bash
    go mod download
    ```
-3. **Set up your `.env` file** (see above)
-4. **Run the server**:  
-   ```
+
+3. **Set up your environment**
+   - Create a `.env` file with required variables
+   - Add your `google_services.json` file for Firebase
+
+4. **Run the server**
+   ```bash
    go run main.go
    ```
+
 5. **API is now available at** `http://localhost:8080` (or your specified port)
+
+### Development
+
+The server includes:
+- **Auto-migration**: Database tables are automatically created on startup
+- **CORS support**: Configured for cross-origin requests
+- **Graceful shutdown**: Proper cleanup on server termination
+- **Cron jobs**: Automatic reminder scheduling
+
+---
+
+## Project Structure
+
+```
+plantie/
+├── config/          # Database and app configuration
+├── constants/       # Application constants
+├── controllers/     # Request handlers
+├── interfaces/      # Interface definitions
+├── middleware/      # Authentication and other middleware
+├── models/          # Database models
+├── routes/          # API route definitions
+├── services/        # Business logic services
+├── utils/           # Utility functions
+├── main.go          # Application entry point
+└── README.md        # This file
+```
+
+---
+
+## Database Schema
+
+### Users
+- `id` (Primary Key)
+- `email` (Unique)
+- `password` (Hashed)
+- `name`
+- `creation_date`
+- `push_token`
+
+### Plants
+- `id` (Primary Key)
+- `user_id` (Foreign Key)
+- `name` (Required)
+- `note`
+- `tag_color` (Required)
+- GORM timestamps
+
+### Reminders
+- `id` (Primary Key)
+- `plant_id` (Foreign Key)
+- `repeat` (daily/weekly/monthly)
+- `time_of_day` (HH:MM format)
+- `next_trigger_time`
+- `user_id` (Foreign Key)
+- GORM timestamps
 
 ---
 
 ## License
 
-MIT 
+MIT License - see [LICENSE](LICENSE) file for details. 

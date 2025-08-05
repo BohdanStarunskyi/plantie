@@ -16,12 +16,12 @@ import (
 var scheduler *gocron.Scheduler
 
 type Reminder struct {
-	ID              int64                `gorm:"primaryKey" json:"id" binding:"-"`
-	PlantID         int64                `binding:"-" json:"-"`
+	ID              int64                `gorm:"primaryKey" json:"id"`
+	PlantID         int64                `json:"-"`
 	Repeat          constants.RepeatType `gorm:"type:smallint" json:"repeatType"`
-	TimeOfDay       string               `json:"timeOfDay" binding:"required"`
-	NextTriggerTime time.Time            `binding:"-" json:"-"`
-	UserID          int64                `binding:"-" json:"-"`
+	TimeOfDay       string               `json:"timeOfDay" validate:"required,len=5"`
+	NextTriggerTime time.Time            `json:"-"`
+	UserID          int64                `json:"-"`
 }
 
 func (r *Reminder) Save() error {

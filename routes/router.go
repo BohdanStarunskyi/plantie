@@ -12,6 +12,7 @@ func SetupRouter(engine *gin.Engine) {
 
 	engine.POST("/login", controllers.Login)
 	engine.POST("/signup", controllers.SignUp)
+	engine.POST("/refresh", controllers.RefreshToken)
 
 	authGroup := engine.Group("/", middleware.VerifyAuth)
 

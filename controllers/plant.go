@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"plant-reminder/models"
+	"plant-reminder/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -19,8 +20,14 @@ func AddPlant(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	plant.UserID = userId
 
+	if err := utils.Validate.Struct(plant); err != nil {
+		log.Printf("AddPlant: validation failed: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	plant.UserID = userId
 	err = plant.Save()
 	if err != nil {
 		log.Printf("AddPlant: failed to save plant: %v", err)
@@ -63,7 +70,6 @@ func UpdatePlant(ctx *gin.Context) {
 
 	var plant models.Plant
 	err := ctx.ShouldBindJSON(&plant)
-
 	if err != nil {
 		log.Printf("UpdatePlant: failed to bind JSON: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -73,6 +79,12 @@ func UpdatePlant(ctx *gin.Context) {
 	if plant.ID == 0 {
 		log.Printf("UpdatePlant: invalid plant ID")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "plantId must be valid"})
+		return
+	}
+
+	if err := utils.Validate.Struct(plant); err != nil {
+		log.Printf("UpdatePlant: validation failed: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

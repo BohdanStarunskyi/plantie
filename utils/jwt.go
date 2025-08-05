@@ -19,6 +19,19 @@ func SignPayload(userID int64) (string, error) {
 	claims := jwt.MapClaims{
 		"userID": userID,
 		"exp":    time.Now().Add(3 * time.Hour).Unix(),
+		"type":   "access",
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(getKey()))
+}
+
+func SignRefreshToken(userID int64) (string, error) {
+	claims := jwt.MapClaims{
+		"userID": userID,
+		"exp":    time.Now().Add(7 * 24 * time.Hour).Unix(), // 7 days
+		"type":   "refresh",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -30,4 +43,23 @@ func VerifyPayload(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(getKey()), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+}
+
+func VerifyRefreshToken(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		return []byte(getKey()), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	// Verify it's a refresh token
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if tokenType, exists := claims["type"]; !exists || tokenType != "refresh" {
+			return nil, jwt.ErrSignatureInvalid
+		}
+	}
+	
+	return token, nil
 }
