@@ -10,9 +10,8 @@ type Plant struct {
 	Name     string `json:"name" validate:"required"`
 	Note     string `json:"note"`
 	TagColor string `json:"tagColor" validate:"required"`
-
-	UserID int64 `json:"-"`
-	User   User  `gorm:"foreignKey:UserID" json:"-"`
+	UserID   int64  `json:"-"`
+	User     User   `gorm:"foreignKey:UserID" json:"-" validate:"-"`
 }
 
 func (p *Plant) Save() error {
