@@ -45,7 +45,7 @@ func AddReminder(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"reminder": reminder})
 }
 
-func GetReminders(ctx *gin.Context) {
+func GetPlantReminders(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
 	plantIdStr := ctx.Param("id")
 	plantID, err := strconv.ParseInt(plantIdStr, 10, 64)
@@ -54,7 +54,18 @@ func GetReminders(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	reminders, err := models.GetReminders(userId, plantID)
+	reminders, err := models.GetPlantReminders(userId, plantID)
+	if err != nil {
+		log.Printf("GetReminders: failed to get reminders: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"reminders": reminders})
+}
+
+func GetAllReminders(ctx *gin.Context) {
+	userId := ctx.GetInt64("userID")
+	reminders, err := models.GetAllReminders(userId)
 	if err != nil {
 		log.Printf("GetReminders: failed to get reminders: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

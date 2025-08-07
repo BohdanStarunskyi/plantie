@@ -20,8 +20,9 @@ type Reminder struct {
 	PlantID         int64                `json:"-"`
 	Repeat          constants.RepeatType `gorm:"type:smallint" json:"repeatType"`
 	TimeOfDay       string               `json:"timeOfDay" validate:"required,len=5"`
-	NextTriggerTime time.Time            `json:"-"`
+	NextTriggerTime time.Time            `json:"nextTriggerTime"`
 	UserID          int64                `json:"-"`
+	Plant           *Plant               `gorm:"foreignKey:PlantID;constraint:OnDelete:CASCADE" json:"plant,omitempty"`
 }
 
 func (r *Reminder) Save() error {
@@ -124,12 +125,24 @@ func (r Reminder) Delete() error {
 	return result.Error
 }
 
-func GetReminders(userID int64, plantID int64) ([]Reminder, error) {
+func GetPlantReminders(userID int64, plantID int64) ([]Reminder, error) {
 	var reminders []Reminder
 	if userID == 0 {
 		return nil, errors.New("userID must be set")
 	}
-	result := config.DB.Where("user_id = ?", userID).Find(&reminders)
+	if plantID == 0 {
+		return nil, errors.New("plantID must be set")
+	}
+	result := config.DB.Where("plant_id = ? AND user_id = ?", plantID, userID).Find(&reminders)
+	return reminders, result.Error
+}
+
+func GetAllReminders(userID int64) ([]Reminder, error) {
+	var reminders []Reminder
+	if userID == 0 {
+		return nil, errors.New("userID must be set")
+	}
+	result := config.DB.Preload("Plant").Where("user_id = ?", userID).Find(&reminders)
 	return reminders, result.Error
 }
 

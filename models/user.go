@@ -16,6 +16,7 @@ type User struct {
 	Name         string    `json:"name" validate:"omitempty,min=2,max=100"`
 	CreationDate time.Time `json:"createdAt"`
 	PushToken    string    `json:"-"`
+	Plants       []Plant   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"plants,omitempty"`
 }
 
 func userExists(email string) (bool, error) {
@@ -65,5 +66,16 @@ func SetPushToken(userID string, token string) error {
 	result := config.DB.Model(&User{}).
 		Where("id = ?", userID).
 		Update("push_token", token)
+	return result.Error
+}
+
+func DeleteUser(userID int64) error {
+	var user User
+	result := config.DB.Where("id = ?", userID).First(&user)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	result = config.DB.Delete(&user)
 	return result.Error
 }
