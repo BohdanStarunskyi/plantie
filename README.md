@@ -11,6 +11,7 @@ Plantie is a backend API for a plant watering reminder application. It helps use
 - **Reminders**: Set, update, view, and delete watering reminders for each plant
 - **Push Notifications**: Receive notifications when it's time to water your plants (via Firebase Cloud Messaging)
 - **Cron Jobs**: Automated reminder scheduling and notification delivery
+- **Automatic Data Cleanup**: Related data is automatically removed when users or plants are deleted
 - **Healthcheck**: Simple endpoint to check if the server is running
 - **Graceful Shutdown**: Proper server shutdown handling
 
@@ -73,6 +74,10 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
   - **Body**: `{ "token": string }`
   - **Response**: `{ "message": "push token set successfully" }`
 
+- **DELETE `/user`**
+  - **Response**: `{ "message": "user and all associated data deleted successfully" }`
+  - **Note**: This will delete the user, all their plants, and all associated reminders
+
 ### Plants
 
 - **POST `/plant`**
@@ -91,6 +96,7 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 
 - **DELETE `/plant/:id`**
   - **Response**: HTTP 204 No Content
+  - **Note**: This will delete the plant and all its associated reminders
 
 ### Reminders
 
@@ -101,12 +107,28 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 - **GET `/plant/:id/reminders`**
   - **Response**: `{ "reminders": [ ... ] }`
 
+- **GET `/plant/reminders`**
+  - **Response**: `{ "reminders": [ ... ] }`
+  - **Note**: Returns all reminders for the authenticated user
+
 - **PUT `/plant/:id/reminder`**
   - **Body**: `{ "id": number, "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
   - **Response**: `{ "reminder": { ... } }`
 
 - **DELETE `/plant/:id/reminder/:reminderId`**
   - **Response**: HTTP 204 No Content
+
+---
+
+## Data Relationships
+
+The application automatically handles data cleanup to maintain integrity:
+
+- **Delete User**: Removes the user and all their plants and reminders
+- **Delete Plant**: Removes the plant and all its associated reminders
+- **Delete Reminder**: Removes only the specific reminder
+
+This ensures that orphaned data is automatically cleaned up when parent records are deleted.
 
 ---
 
@@ -123,7 +145,7 @@ Create a `.env` file in the project root with the following variables:
 - `ENV` – Environment mode (`production` or development, default: development)
 
 ### Firebase Configuration
-Ensure you have a valid `google_services.json` file for Firebase Cloud Messaging in the project root.
+Ensure you have a valid `firebase.json` file for Firebase Cloud Messaging in the project root.
 
 ---
 
@@ -149,7 +171,7 @@ Ensure you have a valid `google_services.json` file for Firebase Cloud Messaging
 
 3. **Set up your environment**
    - Create a `.env` file with required variables
-   - Add your `google_services.json` file for Firebase
+   - Add your `firebase.json` file for Firebase
 
 4. **Run the server**
    ```bash
@@ -165,6 +187,7 @@ The server includes:
 - **CORS support**: Configured for cross-origin requests
 - **Graceful shutdown**: Proper cleanup on server termination
 - **Cron jobs**: Automatic reminder scheduling
+- **Automatic data cleanup**: Related data is removed when parent records are deleted
 
 ---
 
@@ -199,7 +222,7 @@ plantie/
 
 ### Plants
 - `id` (Primary Key)
-- `user_id` (Foreign Key)
+- `user_id` (Foreign Key with automatic cleanup)
 - `name` (Required)
 - `note`
 - `tag_color` (Required)
@@ -207,7 +230,7 @@ plantie/
 
 ### Reminders
 - `id` (Primary Key)
-- `plant_id` (Foreign Key)
+- `plant_id` (Foreign Key with automatic cleanup)
 - `repeat` (daily/weekly/monthly)
 - `time_of_day` (HH:MM format)
 - `next_trigger_time`

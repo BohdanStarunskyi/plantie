@@ -55,4 +55,4 @@ dist/
 .env
 
 #Google Services
-google_services.json
+firebase.json

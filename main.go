@@ -90,11 +90,22 @@ func initDatabase() {
 }
 
 func runMigrations() {
-	err := config.DB.AutoMigrate(&models.User{}, &models.Plant{}, &models.Reminder{})
+	env := os.Getenv("ENV")
 
+	if env == "development" {
+		err := config.DB.Migrator().DropTable(&models.Reminder{}, &models.Plant{}, &models.User{})
+		if err != nil {
+			log.Fatalf("failed to drop tables: %v", err)
+		}
+		log.Println("Dropped existing tables for fresh migration")
+	}
+
+	err := config.DB.AutoMigrate(&models.User{}, &models.Plant{}, &models.Reminder{})
 	if err != nil {
 		log.Fatalf("failed to migrate models: %v", err)
 	}
+
+	log.Println("Database migration completed successfully")
 }
 
 func setupCrons() {
