@@ -90,11 +90,24 @@ func initDatabase() {
 }
 
 func runMigrations() {
+	env := os.Getenv("ENV")
+	
+	// Only drop tables in development environment
+	if env == "development" {
+		err := config.DB.Migrator().DropTable(&models.Reminder{}, &models.Plant{}, &models.User{})
+		if err != nil {
+			log.Fatalf("failed to drop tables: %v", err)
+		}
+		log.Println("Dropped existing tables for fresh migration")
+	}
+	
+	// Auto migrate with new constraints
 	err := config.DB.AutoMigrate(&models.User{}, &models.Plant{}, &models.Reminder{})
-
 	if err != nil {
 		log.Fatalf("failed to migrate models: %v", err)
 	}
+	
+	log.Println("Database migration completed successfully")
 }
 
 func setupCrons() {

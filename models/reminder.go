@@ -22,7 +22,7 @@ type Reminder struct {
 	TimeOfDay       string               `json:"timeOfDay" validate:"required,len=5"`
 	NextTriggerTime time.Time            `json:"nextTriggerTime"`
 	UserID          int64                `json:"-"`
-	Plant           *Plant               `gorm:"foreignKey:PlantID" json:"plant,omitempty"`
+	Plant           *Plant               `gorm:"foreignKey:PlantID;constraint:OnDelete:CASCADE" json:"plant,omitempty"`
 }
 
 func (r *Reminder) Save() error {

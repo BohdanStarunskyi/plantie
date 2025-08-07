@@ -11,7 +11,8 @@ type Plant struct {
 	Note     string `json:"note"`
 	TagColor string `json:"tagColor" validate:"required"`
 	UserID   int64  `json:"-"`
-	User     User   `gorm:"foreignKey:UserID" json:"-" validate:"-"`
+	User     User   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-" validate:"-"`
+	Reminders []Reminder `gorm:"foreignKey:PlantID;constraint:OnDelete:CASCADE" json:"reminders,omitempty"`
 }
 
 func (p *Plant) Save() error {

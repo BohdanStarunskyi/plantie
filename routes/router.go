@@ -17,6 +17,7 @@ func SetupRouter(engine *gin.Engine) {
 	authGroup := engine.Group("/", middleware.VerifyAuth)
 
 	authGroup.POST("/user/push_token", controllers.SetPushToken)
+	authGroup.DELETE("/user", controllers.DeleteUser)
 
 	authGroup.POST("/plant", controllers.AddPlant)
 	authGroup.DELETE("/plant/:id", controllers.DeletePlant)
