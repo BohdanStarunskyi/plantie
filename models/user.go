@@ -75,8 +75,7 @@ func DeleteUser(userID int64) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	
-	// Delete the user (this will cascade to plants and reminders due to foreign key constraints)
+
 	result = config.DB.Delete(&user)
 	return result.Error
 }

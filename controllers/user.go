@@ -117,14 +117,12 @@ func RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	// Generate new access token
 	newAccessToken, err := utils.SignPayload(int64(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate new access token"})
 		return
 	}
 
-	// Generate new refresh token
 	newRefreshToken, err := utils.SignRefreshToken(int64(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate new refresh token"})
@@ -161,7 +159,6 @@ func SetPushToken(ctx *gin.Context) {
 
 func DeleteUser(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
-	
 	err := models.DeleteUser(userID)
 	if err != nil {
 		log.Printf("DeleteUser: failed to delete user: %v", err)
