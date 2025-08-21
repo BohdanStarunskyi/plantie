@@ -81,8 +81,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 ### Plants
 
 - **POST `/plant`**
-  - **Body**: `{ "name": string, "note": string, "tagColor": string }`
+  - **Body**: `{ "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
+  - **Note**: `plantIcon` must be one of the predefined icon types (e.g., "bananaPlant", "bigCactus", "bigPlant", "bigRose", etc.)
 
 - **GET `/plant/:id`**
   - **Response**: `{ "plant": { ... } }`
@@ -91,8 +92,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
   - **Response**: `{ "plants": [ ... ] }`
 
 - **PUT `/plant`**
-  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string }`
+  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
+  - **Note**: `plantIcon` must be one of the predefined icon types
 
 - **DELETE `/plant/:id`**
   - **Response**: HTTP 204 No Content
@@ -226,6 +228,7 @@ plantie/
 - `name` (Required)
 - `note`
 - `tag_color` (Required)
+- `plant_icon` (Required - one of predefined plant icon types)
 - GORM timestamps
 
 ### Reminders
