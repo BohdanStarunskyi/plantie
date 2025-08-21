@@ -26,7 +26,7 @@ func SetupRouter(engine *gin.Engine) {
 	authGroup.GET("/plants", controllers.GetPlants)
 
 	authGroup.POST("/plant/:id/reminder", controllers.AddReminder)
-	authGroup.DELETE("plant/:id/reminder/:reminderId", controllers.DeleteReminder)
+	authGroup.DELETE("/plant/:id/reminder/:reminderId", controllers.DeleteReminder)
 	authGroup.PUT("/plant/:id/reminder", controllers.UpdateReminder)
 	authGroup.GET("/plant/:id/reminders", controllers.GetPlantReminders)
 	authGroup.GET("/plant/reminders", controllers.GetAllReminders)
