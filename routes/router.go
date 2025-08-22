@@ -18,6 +18,7 @@ func SetupRouter(engine *gin.Engine) {
 
 	authGroup.POST("/user/push_token", controllers.SetPushToken)
 	authGroup.DELETE("/user", controllers.DeleteUser)
+	authGroup.GET("/user/me", controllers.GetMyProfile)
 
 	authGroup.POST("/plant", controllers.AddPlant)
 	authGroup.DELETE("/plant/:id", controllers.DeletePlant)
@@ -26,7 +27,7 @@ func SetupRouter(engine *gin.Engine) {
 	authGroup.GET("/plants", controllers.GetPlants)
 
 	authGroup.POST("/plant/:id/reminder", controllers.AddReminder)
-	authGroup.DELETE("plant/:id/reminder/:reminderId", controllers.DeleteReminder)
+	authGroup.DELETE("/plant/:id/reminder/:reminderId", controllers.DeleteReminder)
 	authGroup.PUT("/plant/:id/reminder", controllers.UpdateReminder)
 	authGroup.GET("/plant/:id/reminders", controllers.GetPlantReminders)
 	authGroup.GET("/plant/reminders", controllers.GetAllReminders)

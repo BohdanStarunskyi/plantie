@@ -70,6 +70,10 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 
 ### User
 
+- **GET `/user/me`**
+  - **Response**: `{ "user": { "id": number, "email": string, "name": string, "createdAt": string } }`
+  - **Note**: Returns the profile information of the authenticated user
+
 - **POST `/user/push_token`**
   - **Body**: `{ "token": string }`
   - **Response**: `{ "message": "push token set successfully" }`
@@ -81,8 +85,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 ### Plants
 
 - **POST `/plant`**
-  - **Body**: `{ "name": string, "note": string, "tagColor": string }`
+  - **Body**: `{ "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
+  - **Note**: `plantIcon` must be one of: "bananaPlant", "bigCactus", "bigPlant", "bigRose", "chilliPlant", "daisy", "flowerBed", "flower", "leafyPlant", "mediumPlant", "redTulip", "seaweedPlant", "shortPlant", "skinnyPlant", "smallCactus", "smallPlant", "smallRose", "spikyPlant", "tallPlant", "threeFlowers"
 
 - **GET `/plant/:id`**
   - **Response**: `{ "plant": { ... } }`
@@ -91,8 +96,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
   - **Response**: `{ "plants": [ ... ] }`
 
 - **PUT `/plant`**
-  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string }`
+  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
+  - **Note**: `plantIcon` must be one of the predefined icon types listed above
 
 - **DELETE `/plant/:id`**
   - **Response**: HTTP 204 No Content
@@ -175,7 +181,7 @@ Ensure you have a valid `firebase.json` file for Firebase Cloud Messaging in the
 
 4. **Run the server**
    ```bash
-   go run main.go
+   go run .
    ```
 
 5. **API is now available at** `http://localhost:8080` (or your specified port)
@@ -198,13 +204,14 @@ plantie/
 ├── config/          # Database and app configuration
 ├── constants/       # Application constants
 ├── controllers/     # Request handlers
-├── interfaces/      # Interface definitions
 ├── middleware/      # Authentication and other middleware
 ├── models/          # Database models
 ├── routes/          # API route definitions
-├── services/        # Business logic services
 ├── utils/           # Utility functions
+├── firebase.json    # Firebase configuration
 ├── main.go          # Application entry point
+├── go.mod           # Go module file
+├── go.sum           # Go dependencies
 └── README.md        # This file
 ```
 
@@ -226,6 +233,7 @@ plantie/
 - `name` (Required)
 - `note`
 - `tag_color` (Required)
+- `plant_icon` (Required - one of predefined plant icon types)
 - GORM timestamps
 
 ### Reminders
