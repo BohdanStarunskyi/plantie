@@ -177,6 +177,10 @@ func GetMyProfile(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	if user.ID == 0 {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
