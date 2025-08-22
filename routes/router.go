@@ -18,6 +18,7 @@ func SetupRouter(engine *gin.Engine) {
 
 	authGroup.POST("/user/push_token", controllers.SetPushToken)
 	authGroup.DELETE("/user", controllers.DeleteUser)
+	authGroup.GET("/user/me", controllers.GetMyProfile)
 
 	authGroup.POST("/plant", controllers.AddPlant)
 	authGroup.DELETE("/plant/:id", controllers.DeletePlant)
