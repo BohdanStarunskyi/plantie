@@ -12,7 +12,7 @@ import (
 type User struct {
 	ID           int64     `gorm:"primaryKey" json:"id"`
 	Email        string    `json:"email" validate:"required,email"`
-	Password     string    `json:"password,omitempty" validate:"required,min=6"`
+	Password     string    `json:"-" validate:"required,min=6"`
 	Name         string    `json:"name" validate:"omitempty,min=2,max=100"`
 	CreationDate time.Time `json:"createdAt"`
 	PushToken    string    `json:"-"`
@@ -26,6 +26,15 @@ func userExists(email string) (bool, error) {
 		return false, nil
 	}
 	return result.Error == nil, result.Error
+}
+
+func GetUser(id int64) (User, error) {
+	var user User
+	result := config.DB.Where("id = ?", id).First(&user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return User{}, nil
+	}
+	return user, result.Error
 }
 
 func (u *User) CreateUser() error {

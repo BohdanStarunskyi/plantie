@@ -168,3 +168,15 @@ func DeleteUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "user and all associated data deleted successfully"})
 }
+
+func GetMyProfile(ctx *gin.Context) {
+	userID := ctx.GetInt64("userID")
+	user, err := models.GetUser(userID)
+	if err != nil {
+		log.Printf("GetUser: failed to get user: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user": user})
+}
