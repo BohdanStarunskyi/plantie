@@ -4,92 +4,67 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"plant-reminder/models"
+	"plant-reminder/dto"
+	"plant-reminder/service"
 	"plant-reminder/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Login(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+type UserController struct {
+	userService service.UserServiceInterface
+}
+
+func NewUserController(userService service.UserServiceInterface) *UserController {
+	return &UserController{
+		userService: userService,
+	}
+}
+
+func (uc *UserController) Login(ctx *gin.Context) {
+	var loginRequest dto.UserLoginRequest
+	if err := ctx.ShouldBindJSON(&loginRequest); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	if err := utils.Validate.Var(user.Email, "required,email"); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
-		return
-	}
-	if err := utils.Validate.Var(user.Password, "required,min=6"); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
+	if err := utils.Validate.Struct(loginRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	verifiedUser, err := models.VerifyUser(user.Email, user.Password)
+	authResponse, err := uc.userService.VerifyUser(loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, err := utils.SignPayload(verifiedUser.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
-		return
-	}
-
-	refreshToken, err := utils.SignRefreshToken(verifiedUser.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-		"user":          verifiedUser,
-	})
+	ctx.JSON(http.StatusOK, authResponse)
 }
 
-func SignUp(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+func (uc *UserController) SignUp(ctx *gin.Context) {
+	var userRequest dto.UserCreateRequest
+	if err := ctx.ShouldBindJSON(&userRequest); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	if err := utils.Validate.Struct(user); err != nil {
+	if err := utils.Validate.Struct(userRequest); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := user.CreateUser()
+	authResponse, err := uc.userService.CreateUser(&userRequest)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, err := utils.SignPayload(user.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
-		return
-	}
-
-	refreshToken, err := utils.SignRefreshToken(user.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-		"user":          user,
-	})
+	ctx.JSON(http.StatusCreated, authResponse)
 }
 
-func RefreshToken(ctx *gin.Context) {
+func (uc *UserController) RefreshToken(ctx *gin.Context) {
 	var req struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
@@ -135,11 +110,9 @@ func RefreshToken(ctx *gin.Context) {
 	})
 }
 
-func SetPushToken(ctx *gin.Context) {
+func (uc *UserController) SetPushToken(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
-	var req struct {
-		Token string `json:"token" binding:"required"`
-	}
+	var req dto.PushTokenRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		log.Printf("SetPushToken: failed to bind JSON: %v", err)
@@ -147,7 +120,13 @@ func SetPushToken(ctx *gin.Context) {
 		return
 	}
 
-	err := models.SetPushToken(fmt.Sprintf("%d", userID), req.Token)
+	if err := utils.Validate.Struct(req); err != nil {
+		log.Printf("SetPushToken: validation failed: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := uc.userService.SetPushToken(fmt.Sprintf("%d", userID), req.Token)
 	if err != nil {
 		log.Printf("SetPushToken: failed to set push token: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -157,9 +136,9 @@ func SetPushToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "push token set successfully"})
 }
 
-func DeleteUser(ctx *gin.Context) {
+func (uc *UserController) DeleteUser(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
-	err := models.DeleteUser(userID)
+	err := uc.userService.DeleteUser(userID)
 	if err != nil {
 		log.Printf("DeleteUser: failed to delete user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -169,18 +148,18 @@ func DeleteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "user and all associated data deleted successfully"})
 }
 
-func GetMyProfile(ctx *gin.Context) {
+func (uc *UserController) GetMyProfile(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
-	user, err := models.GetUser(userID)
+	userResponse, err := uc.userService.GetUser(userID)
 	if err != nil {
 		log.Printf("GetUser: failed to get user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if user.ID == 0 {
+	if userResponse == nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user": user})
+	ctx.JSON(http.StatusOK, gin.H{"user": userResponse})
 }
