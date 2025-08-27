@@ -12,10 +12,10 @@ import (
 )
 
 type PlantController struct {
-	plantService *service.PlantService
+	plantService service.PlantServiceInterface
 }
 
-func NewPlantController(plantService *service.PlantService) *PlantController {
+func NewPlantController(plantService service.PlantServiceInterface) *PlantController {
 	return &PlantController{
 		plantService: plantService,
 	}
@@ -105,7 +105,6 @@ func (pc *PlantController) UpdatePlant(ctx *gin.Context) {
 		return
 	}
 
-	// Get the updated plant to return as response
 	updatedPlant, err := pc.plantService.GetPlant(plantId, userId)
 	if err != nil {
 		log.Printf("UpdatePlant: failed to get updated plant: %v", err)

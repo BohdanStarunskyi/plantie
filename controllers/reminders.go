@@ -13,10 +13,10 @@ import (
 )
 
 type ReminderController struct {
-	reminderService *service.ReminderService
+	reminderService service.ReminderServiceInterface
 }
 
-func NewReminderController(reminderService *service.ReminderService) *ReminderController {
+func NewReminderController(reminderService service.ReminderServiceInterface) *ReminderController {
 	return &ReminderController{
 		reminderService: reminderService,
 	}
@@ -139,7 +139,6 @@ func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	// Get the updated reminder to return as response
 	updatedReminder, err := rc.reminderService.GetReminder(reminderRequest.ID, userID)
 	if err != nil {
 		log.Printf("UpdateReminder: failed to get updated reminder: %v", err)

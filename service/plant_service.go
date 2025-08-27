@@ -31,14 +31,12 @@ func (s *PlantService) CreatePlant(plantRequest *dto.PlantCreateRequest, userID 
 }
 
 func (s *PlantService) UpdatePlant(plant *dto.PlantUpdateRequest, plantId int64, userID int64) error {
-	// First check if plant exists and belongs to user
 	var existingPlant models.Plant
 	result := config.DB.Where("id = ? AND user_id = ?", plantId, userID).First(&existingPlant)
 	if result.Error != nil {
 		return result.Error
 	}
 
-	// Convert DTO to model for update
 	updateModel := plant.ToModel(userID)
 	updateModel.ID = plantId
 
@@ -47,7 +45,6 @@ func (s *PlantService) UpdatePlant(plant *dto.PlantUpdateRequest, plantId int64,
 }
 
 func (s *PlantService) DeletePlant(userID int64, plantID int64) error {
-	// Check if plant exists and belongs to user, then delete
 	var plant models.Plant
 	result := config.DB.Where("id = ? AND user_id = ?", plantID, userID).First(&plant)
 	if result.Error != nil {

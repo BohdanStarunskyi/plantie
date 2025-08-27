@@ -1,6 +1,29 @@
 # Plantie – Plant Watering Reminder API
 
-Plantie is a backend API for a plant watering reminder application. It helps users manage their plants, set up watering reminders, and receive push notifications so they never forget to care for their green friends.
+Plantie is a backend API for a plant watering reminder application built with clean architecture principles. It helps users manage their plants, set up watering reminders, and receive push notifications so they never forget to care for their green friends.
+
+**Latest Update**: Refactored to clean architecture with dependency injection, comprehensive testing, and interface-based design.
+
+---
+
+## Recent Architectural Improvements
+
+This project was recently refactored from a basic MVC pattern to a clean architecture with the following improvements:
+
+### What Changed
+- **Service Layer**: Extracted business logic from controllers into dedicated service layer
+- **Dependency Injection**: Controllers now depend on service interfaces rather than concrete implementations
+- **Interface Design**: Created service interfaces (`PlantServiceInterface`, `UserServiceInterface`, `ReminderServiceInterface`)
+- **DTO Pattern**: Implemented Data Transfer Objects for all API requests and responses
+- **Testing**: Added comprehensive unit tests with mock implementations
+- **Container**: Added dependency injection container for clean service management
+
+### Benefits
+- **Testability**: Interface-based design allows for easy mocking and unit testing
+- **Maintainability**: Clear separation of concerns between HTTP, business logic, and data layers
+- **Extensibility**: Easy to add new features or modify existing behavior
+- **Type Safety**: Strong typing with DTO validation ensures API contract integrity
+- **Code Quality**: Improved code organization and reduced coupling between components
 
 ---
 
@@ -14,6 +37,9 @@ Plantie is a backend API for a plant watering reminder application. It helps use
 - **Automatic Data Cleanup**: Related data is automatically removed when users or plants are deleted
 - **Healthcheck**: Simple endpoint to check if the server is running
 - **Graceful Shutdown**: Proper server shutdown handling
+- **Clean Architecture**: Dependency injection with service interfaces for maintainability
+- **Comprehensive Testing**: Full unit test coverage with mock implementations
+- **Type Safety**: Strong typing with DTO patterns for API contracts
 
 ---
 
@@ -31,17 +57,59 @@ Plantie is a backend API for a plant watering reminder application. It helps use
 
 ---
 
+## Testing
+
+The project includes comprehensive unit tests for all controllers and services:
+
+### Running Tests
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run tests for specific package
+go test ./controllers/
+go test ./service/
+```
+
+### Test Structure
+- **Controller Tests**: Mock service dependencies and test HTTP handling
+- **Service Tests**: Test business logic with mock database interactions
+- **Mock Implementations**: Comprehensive mocks for all service interfaces
+- **Test Coverage**: Full coverage of happy paths and error scenarios
+
+### Test Features
+- Interface-based mocking for clean test isolation
+- HTTP request/response testing with Gin test mode
+- Validation testing for all API endpoints
+- Error handling verification
+
+---
+
 ## Architecture
 
-The project follows the **MVC (Model-View-Controller)** pattern:
+The project follows the **Clean Architecture** pattern with clear separation of concerns:
 
 - **Models**: Data structures and database logic (`models/`)
-- **Controllers**: Business logic and request handling (`controllers/`)
+- **Controllers**: HTTP request handling and response formatting (`controllers/`)
+- **Services**: Business logic implementation with dependency injection via interfaces (`service/`)
+- **DTOs**: Data Transfer Objects for API requests and responses (`dto/`)
 - **Routes**: API endpoint definitions (`routes/`)
 - **Middleware**: Authentication and other request pre-processing (`middleware/`)
 - **Utils**: Utility functions (JWT, password hashing, notifications, etc.)
 - **Config**: Database and application configuration (`config/`)
 - **Constants**: Application constants (`constants/`)
+
+### Key Architectural Improvements
+
+- **Dependency Injection**: Controllers use service interfaces for better testability and maintainability
+- **Interface-based Design**: Services implement interfaces allowing for easy mocking and testing
+- **Comprehensive Testing**: Full test coverage for controllers and services with mock implementations
+- **Clean Separation**: Clear boundaries between HTTP layer, business logic, and data layer
+- **DTO Pattern**: Data Transfer Objects ensure type safety and clear API contracts
+- **Dependency Injection Container**: Centralized dependency management with interfaces
 
 ---
 
@@ -87,7 +155,7 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 - **POST `/plant`**
   - **Body**: `{ "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
-  - **Note**: `plantIcon` must be one of: "bananaPlant", "bigCactus", "bigPlant", "bigRose", "chilliPlant", "daisy", "flowerBed", "flower", "leafyPlant", "mediumPlant", "redTulip", "seaweedPlant", "shortPlant", "skinnyPlant", "smallCactus", "smallPlant", "smallRose", "spikyPlant", "tallPlant", "threeFlowers"
+  - **Note**: `plantIcon` must be one of: "bananaPlant", "bigCactus", "bigPlant", "bigRose", "chilliPlant", "daisy", "flowerBed", "flower", "leafyPlant", "mediumPlant", "redTulip", "seaweedPlant", "shortPlant", "skinnyPlant", "smallCactus", "smallPlant", "smallRose", "spikyPlant", "tallPlant", "threeFlowers", "twoFlowers", "twoPlants", "whiteFlower", "yellowTulip"
 
 - **GET `/plant/:id`**
   - **Response**: `{ "plant": { ... } }`
@@ -95,10 +163,10 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 - **GET `/plants`**
   - **Response**: `{ "plants": [ ... ] }`
 
-- **PUT `/plant`**
-  - **Body**: `{ "id": number, "name": string, "note": string, "tagColor": string, "plantIcon": string }`
+- **PUT `/plant/:id`**
+  - **Body**: `{ "name": string, "note": string, "tagColor": string, "plantIcon": string }`
   - **Response**: `{ "plant": { ... } }`
-  - **Note**: `plantIcon` must be one of the predefined icon types listed above
+  - **Note**: `plantIcon` must be one of the predefined icon types listed above. The plant ID is specified in the URL path.
 
 - **DELETE `/plant/:id`**
   - **Response**: HTTP 204 No Content
@@ -107,8 +175,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
 ### Reminders
 
 - **POST `/plant/:id/reminder`**
-  - **Body**: `{ "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
+  - **Body**: `{ "plantId": number, "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
   - **Response**: `{ "reminder": { ... } }`
+  - **Note**: The `plantId` in the body should match the `:id` in the URL path
 
 - **GET `/plant/:id/reminders`**
   - **Response**: `{ "reminders": [ ... ] }`
@@ -118,8 +187,9 @@ All endpoints (except `/ping`, `/login`, `/signup`, `/refresh`) require a valid 
   - **Note**: Returns all reminders for the authenticated user
 
 - **PUT `/plant/:id/reminder`**
-  - **Body**: `{ "id": number, "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
+  - **Body**: `{ "id": number, "plantId": number, "repeatType": "daily"|"weekly"|"monthly", "timeOfDay": "HH:MM" }`
   - **Response**: `{ "reminder": { ... } }`
+  - **Note**: The `plantId` in the body should match the `:id` in the URL path
 
 - **DELETE `/plant/:id/reminder/:reminderId`**
   - **Response**: HTTP 204 No Content
@@ -184,7 +254,12 @@ Ensure you have a valid `firebase.json` file for Firebase Cloud Messaging in the
    go run .
    ```
 
-5. **API is now available at** `http://localhost:8080` (or your specified port)
+5. **Run tests** (optional)
+   ```bash
+   go test ./...
+   ```
+
+6. **API is now available at** `http://localhost:8080` (or your specified port)
 
 ### Development
 
@@ -194,6 +269,9 @@ The server includes:
 - **Graceful shutdown**: Proper cleanup on server termination
 - **Cron jobs**: Automatic reminder scheduling
 - **Automatic data cleanup**: Related data is removed when parent records are deleted
+- **Dependency injection**: Services are injected via interfaces for better testability
+- **Unit testing**: Run tests with `go test ./...` for full test suite coverage
+- **Clean architecture**: Separation of concerns between HTTP, business logic, and data layers
 
 ---
 
@@ -203,10 +281,16 @@ The server includes:
 plantie/
 ├── config/          # Database and app configuration
 ├── constants/       # Application constants
-├── controllers/     # Request handlers
+├── container/       # Dependency injection container
+├── controllers/     # HTTP request handlers
+│   ├── *_test.go   # Controller unit tests with mocks
+├── dto/             # Data Transfer Objects
 ├── middleware/      # Authentication and other middleware
 ├── models/          # Database models
 ├── routes/          # API route definitions
+├── service/         # Business logic layer
+│   ├── interfaces.go # Service interface definitions
+│   ├── *_test.go   # Service unit tests
 ├── utils/           # Utility functions
 ├── firebase.json    # Firebase configuration
 ├── main.go          # Application entry point
