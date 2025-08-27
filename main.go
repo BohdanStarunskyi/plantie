@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"plant-reminder/config"
+	"plant-reminder/container"
 	"plant-reminder/models"
 	"plant-reminder/routes"
 	"plant-reminder/utils"
@@ -20,9 +21,10 @@ import (
 
 func main() {
 	loadEnv()
-	initApp()
 
-	server := setupServer()
+	app := initApp()
+
+	server := setupServer(app)
 	startServer(server)
 	gracefulShutdown(server)
 }
@@ -35,17 +37,22 @@ func loadEnv() {
 	}
 }
 
-func initApp() {
+func initApp() *container.Application {
 	initDatabase()
 	runMigrations()
-	setupCrons()
 	initNotifier()
+
+	app := container.NewApplication()
+
+	setupCrons(app)
+
+	return app
 }
 
-func setupServer() *http.Server {
+func setupServer(app *container.Application) *http.Server {
 	router := gin.Default()
 	router.Use(cors.Default())
-	routes.SetupRouter(router)
+	routes.SetupRouter(router, app)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -108,8 +115,8 @@ func runMigrations() {
 	log.Println("Database migration completed successfully")
 }
 
-func setupCrons() {
-	if err := models.SetReminders(); err != nil {
+func setupCrons(app *container.Application) {
+	if err := app.ReminderService.SetReminders(); err != nil {
 		log.Fatalf("failed to start cron jobs: %v", err)
 	}
 }

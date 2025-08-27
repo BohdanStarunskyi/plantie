@@ -6,6 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Ping(ctx *gin.Context) {
+type HealthController struct{}
+
+func NewHealthController() *HealthController {
+	return &HealthController{}
+}
+
+func (hc *HealthController) Ping(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "pong")
 }
