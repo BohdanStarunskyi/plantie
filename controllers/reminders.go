@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"net/http"
-	"plant-reminder/models"
+	"plant-reminder/dto"
+	"plant-reminder/service"
 	"plant-reminder/utils"
 	"strconv"
 
@@ -11,7 +12,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AddReminder(ctx *gin.Context) {
+type ReminderController struct {
+	reminderService service.ReminderServiceInterface
+}
+
+func NewReminderController(reminderService service.ReminderServiceInterface) *ReminderController {
+	return &ReminderController{
+		reminderService: reminderService,
+	}
+}
+
+func (rc *ReminderController) AddReminder(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
 	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -20,32 +31,32 @@ func AddReminder(ctx *gin.Context) {
 		return
 	}
 
-	var reminder models.Reminder
-	if err := ctx.ShouldBindJSON(&reminder); err != nil {
+	var reminderRequest dto.ReminderCreateRequest
+	if err := ctx.ShouldBindJSON(&reminderRequest); err != nil {
 		log.Printf("AddReminder: failed to bind JSON: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON format"})
 		return
 	}
 
-	if err := utils.Validate.Struct(reminder); err != nil {
+	if err := utils.Validate.Struct(reminderRequest); err != nil {
 		log.Printf("AddReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	reminder.UserID = userID
-	reminder.PlantID = plantID
+	reminderRequest.PlantID = plantID
 
-	if err := reminder.Save(); err != nil {
+	reminderResponse, err := rc.reminderService.CreateReminder(&reminderRequest, userID)
+	if err != nil {
 		log.Printf("AddReminder: failed to save reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"reminder": reminder})
+	ctx.JSON(http.StatusCreated, gin.H{"reminder": reminderResponse})
 }
 
-func GetPlantReminders(ctx *gin.Context) {
+func (rc *ReminderController) GetPlantReminders(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
 	plantIdStr := ctx.Param("id")
 	plantID, err := strconv.ParseInt(plantIdStr, 10, 64)
@@ -54,7 +65,7 @@ func GetPlantReminders(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	reminders, err := models.GetPlantReminders(userId, plantID)
+	reminders, err := rc.reminderService.GetPlantReminders(plantID, userId)
 	if err != nil {
 		log.Printf("GetReminders: failed to get reminders: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -63,9 +74,9 @@ func GetPlantReminders(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"reminders": reminders})
 }
 
-func GetAllReminders(ctx *gin.Context) {
+func (rc *ReminderController) GetAllReminders(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
-	reminders, err := models.GetAllReminders(userId)
+	reminders, err := rc.reminderService.GetUserReminders(userId)
 	if err != nil {
 		log.Printf("GetReminders: failed to get reminders: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -74,15 +85,8 @@ func GetAllReminders(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"reminders": reminders})
 }
 
-func DeleteReminder(ctx *gin.Context) {
+func (rc *ReminderController) DeleteReminder(ctx *gin.Context) {
 	userId := ctx.GetInt64("userID")
-	plantIdStr := ctx.Param("id")
-	plantID, err := strconv.ParseInt(plantIdStr, 10, 64)
-	if err != nil {
-		log.Printf("DeleteReminder: invalid plant id: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 	reminderId, err := strconv.ParseInt(ctx.Param("reminderId"), 10, 64)
 	if err != nil {
 		log.Printf("DeleteReminder: invalid reminder id: %v", err)
@@ -90,12 +94,7 @@ func DeleteReminder(ctx *gin.Context) {
 		return
 	}
 
-	reminder := models.Reminder{
-		ID:      reminderId,
-		PlantID: plantID,
-		UserID:  userId,
-	}
-	err = reminder.Delete()
+	err = rc.reminderService.DeleteReminder(reminderId, userId)
 	if err != nil {
 		log.Printf("DeleteReminder: failed to delete reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -104,7 +103,7 @@ func DeleteReminder(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-func UpdateReminder(ctx *gin.Context) {
+func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
 	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
@@ -113,32 +112,39 @@ func UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	var reminder models.Reminder
-	if err := ctx.ShouldBindJSON(&reminder); err != nil {
+	var reminderRequest dto.ReminderUpdateRequest
+	if err := ctx.ShouldBindJSON(&reminderRequest); err != nil {
 		log.Printf("UpdateReminder: failed to bind JSON: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON format"})
 		return
 	}
 
-	if reminder.ID == 0 {
+	if reminderRequest.ID == 0 {
 		log.Printf("UpdateReminder: invalid reminder ID")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "reminder ID must be set"})
 		return
 	}
 
-	if err := utils.Validate.Struct(reminder); err != nil {
+	if err := utils.Validate.Struct(reminderRequest); err != nil {
 		log.Printf("UpdateReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	reminder.PlantID = plantID
+	reminderRequest.PlantID = plantID
 
-	if err := reminder.Update(userID); err != nil {
+	if err := rc.reminderService.UpdateReminder(&reminderRequest, userID); err != nil {
 		log.Printf("UpdateReminder: failed to update reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"reminder": reminder})
+	updatedReminder, err := rc.reminderService.GetReminder(reminderRequest.ID, userID)
+	if err != nil {
+		log.Printf("UpdateReminder: failed to get updated reminder: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"reminder": updatedReminder})
 }
