@@ -15,7 +15,9 @@ func InitDb() {
 	if dsn == "" {
 		panic("db url not found")
 	}
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		PrepareStmt: false,
+	})
 	if err != nil {
 		panic("Couldn't init database " + err.Error())
 	}
