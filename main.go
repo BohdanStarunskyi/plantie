@@ -39,6 +39,10 @@ func loadEnv() {
 
 func initApp() *container.Application {
 	initDatabase()
+
+	// Give the database a moment to settle before running migrations
+	time.Sleep(1 * time.Second)
+
 	runMigrations()
 	initNotifier()
 
@@ -97,22 +101,12 @@ func initDatabase() {
 }
 
 func runMigrations() {
-	env := os.Getenv("ENV")
-
-	if env == "development" {
-		err := config.DB.Migrator().DropTable(&models.Reminder{}, &models.Plant{}, &models.User{})
-		if err != nil {
-			log.Fatalf("failed to drop tables: %v", err)
-		}
-		log.Println("Dropped existing tables for fresh migration")
-	}
-
 	err := config.DB.AutoMigrate(&models.User{}, &models.Plant{}, &models.Reminder{})
 	if err != nil {
-		log.Fatalf("failed to migrate models: %v", err)
+		log.Printf("Migration warning: %v", err)
+	} else {
+		log.Println("Database migration completed successfully")
 	}
-
-	log.Println("Database migration completed successfully")
 }
 
 func setupCrons(app *container.Application) {
