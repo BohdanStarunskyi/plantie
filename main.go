@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -105,7 +106,10 @@ func runMigrations() {
 	if err != nil {
 		log.Printf("Migration warning: %v", err)
 	} else {
-		log.Println("Database migration completed successfully")
+		Session := config.DB.Session(&gorm.Session{PrepareStmt: true})
+		if Session != nil {
+			log.Println("Database migration completed successfully")
+		}
 	}
 }
 
