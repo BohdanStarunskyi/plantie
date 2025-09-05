@@ -10,21 +10,16 @@ import (
 
 func TestReminderService_CreateReminder_DTOConversion(t *testing.T) {
 	reminderRequest := &dto.ReminderCreateRequest{
-		PlantID:   1,
-		Repeat:    constants.RepeatDaily,
-		TimeOfDay: "08:00",
+		RepeatType: constants.RepeatDaily,
+		TimeOfDay:  "08:00",
 	}
 
 	userID := int64(123)
 
 	reminder := reminderRequest.ToModel(userID)
 
-	if reminder.PlantID != reminderRequest.PlantID {
-		t.Errorf("Expected PlantID %d, got %d", reminderRequest.PlantID, reminder.PlantID)
-	}
-
-	if reminder.Repeat != reminderRequest.Repeat {
-		t.Errorf("Expected Repeat %v, got %v", reminderRequest.Repeat, reminder.Repeat)
+	if reminder.Repeat != reminderRequest.RepeatType {
+		t.Errorf("Expected Repeat %v, got %v", reminderRequest.RepeatType, reminder.Repeat)
 	}
 
 	if reminder.TimeOfDay != reminderRequest.TimeOfDay {
@@ -38,10 +33,10 @@ func TestReminderService_CreateReminder_DTOConversion(t *testing.T) {
 
 func TestReminderUpdateRequest_DTOConversion(t *testing.T) {
 	reminderRequest := &dto.ReminderUpdateRequest{
-		ID:        1,
-		PlantID:   2,
-		Repeat:    constants.RepeatWeekly,
-		TimeOfDay: "18:00",
+		ID:         1,
+		PlantID:    2,
+		RepeatType: constants.RepeatWeekly,
+		TimeOfDay:  "18:00",
 	}
 
 	userID := int64(123)
@@ -56,8 +51,8 @@ func TestReminderUpdateRequest_DTOConversion(t *testing.T) {
 		t.Errorf("Expected PlantID %d, got %d", reminderRequest.PlantID, reminder.PlantID)
 	}
 
-	if reminder.Repeat != reminderRequest.Repeat {
-		t.Errorf("Expected Repeat %v, got %v", reminderRequest.Repeat, reminder.Repeat)
+	if reminder.Repeat != reminderRequest.RepeatType {
+		t.Errorf("Expected Repeat %v, got %v", reminderRequest.RepeatType, reminder.Repeat)
 	}
 
 	if reminder.TimeOfDay != reminderRequest.TimeOfDay {
@@ -131,25 +126,25 @@ func TestRepeatType_String(t *testing.T) {
 }
 
 func TestReminderCreateRequest_Validation(t *testing.T) {
-	validRequest := dto.ReminderCreateRequest{PlantID: 1, Repeat: constants.RepeatDaily, TimeOfDay: "08:00"}
-
-	if validRequest.PlantID <= 0 {
-		t.Error("Expected valid PlantID")
-	}
+	validRequest := dto.ReminderCreateRequest{RepeatType: constants.RepeatDaily, TimeOfDay: "08:00"}
 
 	if validRequest.TimeOfDay == "" {
 		t.Error("Expected valid TimeOfDay")
 	}
 
-	invalidRequest := dto.ReminderCreateRequest{PlantID: 0, Repeat: constants.RepeatDaily, TimeOfDay: "08:00"}
+	if validRequest.RepeatType.String() == "" {
+		t.Error("Expected valid RepeatType")
+	}
 
-	if invalidRequest.PlantID > 0 {
-		t.Error("Expected invalid PlantID for invalid request")
+	invalidRequest := dto.ReminderCreateRequest{RepeatType: constants.RepeatDaily, TimeOfDay: ""}
+
+	if invalidRequest.TimeOfDay != "" {
+		t.Error("Expected invalid TimeOfDay for invalid request")
 	}
 }
 
 func TestReminderUpdateRequest_Validation(t *testing.T) {
-	validRequest := dto.ReminderUpdateRequest{ID: 1, PlantID: 1, Repeat: constants.RepeatDaily, TimeOfDay: "08:00"}
+	validRequest := dto.ReminderUpdateRequest{ID: 1, PlantID: 1, RepeatType: constants.RepeatDaily, TimeOfDay: "08:00"}
 
 	if validRequest.ID <= 0 {
 		t.Error("Expected valid ID")
@@ -164,10 +159,10 @@ func TestReminderUpdateRequest_Validation(t *testing.T) {
 	}
 
 	invalidRequest := dto.ReminderUpdateRequest{
-		ID:        0,
-		PlantID:   1,
-		Repeat:    constants.RepeatDaily,
-		TimeOfDay: "08:00",
+		ID:         0,
+		PlantID:    1,
+		RepeatType: constants.RepeatDaily,
+		TimeOfDay:  "08:00",
 	}
 
 	if invalidRequest.ID > 0 {

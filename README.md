@@ -323,7 +323,7 @@ plantie/
 ### Reminders
 - `id` (Primary Key)
 - `plant_id` (Foreign Key with automatic cleanup)
-- `repeat` (daily/weekly/monthly)
+- `repeatType` (daily/weekly/monthly)
 - `time_of_day` (HH:MM format)
 - `next_trigger_time`
 - `user_id` (Foreign Key)

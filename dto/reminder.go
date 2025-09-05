@@ -7,15 +7,15 @@ import (
 )
 
 type ReminderCreateRequest struct {
-	Repeat    constants.RepeatType `json:"repeatType" validate:"required"`
-	TimeOfDay string               `json:"timeOfDay" validate:"required,len=5"`
+	RepeatType constants.RepeatType `json:"repeatType" validate:"required"`
+	TimeOfDay  string               `json:"timeOfDay" validate:"required,len=5"`
 }
 
 type ReminderUpdateRequest struct {
-	ID        int64                `json:"id" validate:"required"`
-	PlantID   int64                `json:"plantId" validate:"required"`
-	Repeat    constants.RepeatType `json:"repeatType" validate:"required"`
-	TimeOfDay string               `json:"timeOfDay" validate:"required,len=5"`
+	ID         int64                `json:"id" validate:"required"`
+	PlantID    int64                `json:"plantId" validate:"required"`
+	RepeatType constants.RepeatType `json:"repeatType" validate:"required"`
+	TimeOfDay  string               `json:"timeOfDay" validate:"required,len=5"`
 }
 
 type ReminderResponse struct {
@@ -28,7 +28,7 @@ type ReminderResponse struct {
 
 func (r *ReminderCreateRequest) ToModel(userID int64) *models.Reminder {
 	return &models.Reminder{
-		Repeat:    r.Repeat,
+		Repeat:    r.RepeatType,
 		TimeOfDay: r.TimeOfDay,
 		UserID:    userID,
 	}
@@ -38,7 +38,7 @@ func (r *ReminderUpdateRequest) ToModel(userID int64) *models.Reminder {
 	return &models.Reminder{
 		ID:        r.ID,
 		PlantID:   r.PlantID,
-		Repeat:    r.Repeat,
+		Repeat:    r.RepeatType,
 		TimeOfDay: r.TimeOfDay,
 		UserID:    userID,
 	}
