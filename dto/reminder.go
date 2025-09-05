@@ -7,14 +7,14 @@ import (
 )
 
 type ReminderCreateRequest struct {
-	RepeatType constants.RepeatType `json:"repeatType" validate:"required"`
+	RepeatType constants.RepeatType `json:"repeatType" validate:"validrepeattype"`
 	TimeOfDay  string               `json:"timeOfDay" validate:"required,len=5"`
 }
 
 type ReminderUpdateRequest struct {
 	ID         int64                `json:"id" validate:"required"`
 	PlantID    int64                `json:"plantId" validate:"required"`
-	RepeatType constants.RepeatType `json:"repeatType" validate:"required"`
+	RepeatType constants.RepeatType `json:"repeatType" validate:"validrepeattype"`
 	TimeOfDay  string               `json:"timeOfDay" validate:"required,len=5"`
 }
 
