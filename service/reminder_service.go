@@ -51,6 +51,8 @@ func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequ
 		return nil, err
 	}
 
+	reminder.PlantID = plantId
+
 	result := config.DB.Create(reminder)
 	if result.Error != nil {
 		return nil, result.Error
