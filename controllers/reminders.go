@@ -44,9 +44,7 @@ func (rc *ReminderController) AddReminder(ctx *gin.Context) {
 		return
 	}
 
-	reminderRequest.PlantID = plantID
-
-	reminderResponse, err := rc.reminderService.CreateReminder(&reminderRequest, userID)
+	reminderResponse, err := rc.reminderService.CreateReminder(&reminderRequest, plantID, userID)
 	if err != nil {
 		log.Printf("AddReminder: failed to save reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -7,7 +7,6 @@ import (
 )
 
 type ReminderCreateRequest struct {
-	PlantID   int64                `json:"plantId" validate:"required"`
 	Repeat    constants.RepeatType `json:"repeatType" validate:"required"`
 	TimeOfDay string               `json:"timeOfDay" validate:"required,len=5"`
 }
@@ -29,7 +28,6 @@ type ReminderResponse struct {
 
 func (r *ReminderCreateRequest) ToModel(userID int64) *models.Reminder {
 	return &models.Reminder{
-		PlantID:   r.PlantID,
 		Repeat:    r.Repeat,
 		TimeOfDay: r.TimeOfDay,
 		UserID:    userID,

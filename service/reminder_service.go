@@ -27,9 +27,8 @@ func NewReminderService() *ReminderService {
 	}
 }
 
-func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequest, userID int64) (*dto.ReminderResponse, error) {
-	// Check if plant exists and belongs to user
-	_, err := s.plantService.GetPlant(reminderRequest.PlantID, userID)
+func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequest, plantId int64, userID int64) (*dto.ReminderResponse, error) {
+	_, err := s.plantService.GetPlant(plantId, userID)
 	if err != nil {
 		return nil, errors.New("plant doesn't exist")
 	}
