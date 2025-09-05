@@ -19,7 +19,7 @@ type UserServiceInterface interface {
 }
 
 type ReminderServiceInterface interface {
-	CreateReminder(reminderRequest *dto.ReminderCreateRequest, userID int64) (*dto.ReminderResponse, error)
+	CreateReminder(reminderRequest *dto.ReminderCreateRequest, plantId int64, userID int64) (*dto.ReminderResponse, error)
 	GetReminder(reminderID int64, userID int64) (*dto.ReminderResponse, error)
 	GetPlantReminders(plantID int64, userID int64) ([]dto.ReminderResponse, error)
 	GetUserReminders(userID int64) ([]dto.ReminderResponse, error)

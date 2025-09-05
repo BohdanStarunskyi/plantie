@@ -15,7 +15,7 @@ import (
 
 // MockReminderService is a mock implementation of ReminderService for testing
 type MockReminderService struct {
-	CreateReminderFunc    func(*dto.ReminderCreateRequest, int64) (*dto.ReminderResponse, error)
+	CreateReminderFunc    func(*dto.ReminderCreateRequest, int64, int64) (*dto.ReminderResponse, error)
 	GetReminderFunc       func(int64, int64) (*dto.ReminderResponse, error)
 	GetPlantRemindersFunc func(int64, int64) ([]dto.ReminderResponse, error)
 	GetUserRemindersFunc  func(int64) ([]dto.ReminderResponse, error)
@@ -23,9 +23,9 @@ type MockReminderService struct {
 	DeleteReminderFunc    func(int64, int64) error
 }
 
-func (m *MockReminderService) CreateReminder(req *dto.ReminderCreateRequest, userID int64) (*dto.ReminderResponse, error) {
+func (m *MockReminderService) CreateReminder(req *dto.ReminderCreateRequest, plantID int64, userID int64) (*dto.ReminderResponse, error) {
 	if m.CreateReminderFunc != nil {
-		return m.CreateReminderFunc(req, userID)
+		return m.CreateReminderFunc(req, plantID, userID)
 	}
 	return nil, nil
 }
@@ -83,7 +83,7 @@ func TestReminderController_AddReminder_Success(t *testing.T) {
 	}
 
 	// Mock successful creation but bypass validation by testing the service call directly
-	mockService.CreateReminderFunc = func(req *dto.ReminderCreateRequest, userID int64) (*dto.ReminderResponse, error) {
+	mockService.CreateReminderFunc = func(req *dto.ReminderCreateRequest, plantID int64, userID int64) (*dto.ReminderResponse, error) {
 		// Just check that the method gets called correctly
 		return expectedResponse, nil
 	}
