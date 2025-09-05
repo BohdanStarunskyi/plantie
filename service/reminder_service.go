@@ -37,7 +37,7 @@ func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequ
 
 	var existing models.Reminder
 	err = config.DB.
-		Where("plant_id = ? AND time_of_day = ? AND repeat = ?", reminder.PlantID, reminder.TimeOfDay, reminder.Repeat).
+		Where("plant_id = ? AND time_of_day = ? AND repeat = ?", plantId, reminder.TimeOfDay, reminder.Repeat).
 		First(&existing).Error
 
 	if err == nil && existing.ID != reminder.ID {
