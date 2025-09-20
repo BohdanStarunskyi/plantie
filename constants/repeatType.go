@@ -2,6 +2,7 @@ package constants
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -42,4 +43,37 @@ func (r *RepeatType) UnmarshalJSON(b []byte) error {
 
 func (r RepeatType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String())
+}
+
+func ValidateReminderFields(repeatType RepeatType, dayOfWeek, dayOfMonth *int16) error {
+	switch repeatType {
+	case RepeatDaily:
+		if dayOfWeek != nil {
+			return errors.New("dayOfWeek should not be set for daily reminders")
+		}
+		if dayOfMonth != nil {
+			return errors.New("dayOfMonth should not be set for daily reminders")
+		}
+
+	case RepeatWeekly:
+		if dayOfWeek == nil {
+			return errors.New("dayOfWeek is required for weekly reminders")
+		}
+		if dayOfMonth != nil {
+			return errors.New("dayOfMonth should not be set for weekly reminders")
+		}
+
+	case RepeatMonthly:
+		if dayOfMonth == nil {
+			return errors.New("dayOfMonth is required for monthly reminders")
+		}
+		if dayOfWeek != nil {
+			return errors.New("dayOfWeek should not be set for monthly reminders")
+		}
+
+	default:
+		return fmt.Errorf("invalid repeatType: %s", repeatType)
+	}
+
+	return nil
 }

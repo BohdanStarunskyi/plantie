@@ -195,21 +195,58 @@ func (s *ReminderService) TestReminder(userID int64) error {
 
 func (s *ReminderService) calculateNextTriggerTime(reminder *models.Reminder) error {
 	now := time.Now()
+
 	t, err := time.Parse("15:04", reminder.TimeOfDay)
 	if err != nil {
 		return fmt.Errorf("invalid time format, expected HH:mm: %w", err)
 	}
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), 0, 0, time.Local)
-	if nextTime.Before(now) {
-		switch reminder.Repeat {
-		case constants.RepeatDaily:
+	nextTime := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		t.Hour(), t.Minute(), 0, 0, time.Local,
+	)
+
+	switch reminder.Repeat {
+	case constants.RepeatDaily:
+		if nextTime.Before(now) {
 			nextTime = nextTime.Add(24 * time.Hour)
-		case constants.RepeatWeekly:
-			nextTime = nextTime.Add(7 * 24 * time.Hour)
-		case constants.RepeatMonthly:
-			nextTime = nextTime.AddDate(0, 1, 0)
 		}
+
+	case constants.RepeatWeekly:
+		if reminder.DayOfWeek == nil {
+			return errors.New("weekly reminder requires dayOfWeek")
+		}
+		targetWeekday := time.Weekday(*reminder.DayOfWeek)
+
+		daysUntil := (int(targetWeekday) - int(now.Weekday()) + 7) % 7
+		if daysUntil == 0 && nextTime.Before(now) {
+			daysUntil = 7
+		}
+		nextTime = nextTime.AddDate(0, 0, daysUntil)
+
+	case constants.RepeatMonthly:
+		if reminder.DayOfMonth == nil {
+			return errors.New("monthly reminder requires dayOfMonth")
+		}
+		day := int(*reminder.DayOfMonth)
+
+		daysInMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local).Day()
+		if day > daysInMonth {
+			day = daysInMonth
+		}
+
+		nextTime = time.Date(now.Year(), now.Month(), day, t.Hour(), t.Minute(), 0, 0, time.Local)
+		if nextTime.Before(now) {
+			nextMonth := now.AddDate(0, 1, 0)
+			daysInNextMonth := time.Date(nextMonth.Year(), nextMonth.Month()+1, 0, 0, 0, 0, 0, time.Local).Day()
+			if day > daysInNextMonth {
+				day = daysInNextMonth
+			}
+			nextTime = time.Date(nextMonth.Year(), nextMonth.Month(), day, t.Hour(), t.Minute(), 0, 0, time.Local)
+		}
+
+	default:
+		return fmt.Errorf("unsupported repeat type: %s", reminder.Repeat)
 	}
 
 	reminder.NextTriggerTime = nextTime
@@ -238,17 +275,14 @@ func (s *ReminderService) checkReminders(ch chan error) {
 	}
 	wg.Wait()
 
-	updatedReminders := utils.Map(reminders, func(item models.Reminder) models.Reminder {
-		switch item.Repeat {
-		case constants.RepeatDaily:
-			item.NextTriggerTime = item.NextTriggerTime.Add(24 * time.Hour)
-		case constants.RepeatWeekly:
-			item.NextTriggerTime = item.NextTriggerTime.Add(7 * 24 * time.Hour)
-		case constants.RepeatMonthly:
-			item.NextTriggerTime = item.NextTriggerTime.AddDate(0, 1, 0)
+	var updatedReminders []models.Reminder
+	for _, r := range reminders {
+		if err := s.calculateNextTriggerTime(&r); err != nil {
+			fmt.Println("failed to recalc nextTriggerTime:", err)
+			continue
 		}
-		return item
-	})
+		updatedReminders = append(updatedReminders, r)
+	}
 
 	var result *gorm.DB
 	if len(updatedReminders) != 0 {

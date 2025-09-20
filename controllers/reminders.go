@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"plant-reminder/dto"
 	"plant-reminder/service"
-	"plant-reminder/utils"
 	"strconv"
 
 	"log"
@@ -38,7 +37,7 @@ func (rc *ReminderController) AddReminder(ctx *gin.Context) {
 		return
 	}
 
-	if err := utils.Validate.Struct(reminderRequest); err != nil {
+	if err := reminderRequest.Validate(); err != nil {
 		log.Printf("AddReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -134,7 +133,7 @@ func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	if err := utils.Validate.Struct(reminderRequest); err != nil {
+	if err := reminderRequest.Validate(); err != nil {
 		log.Printf("UpdateReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
