@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"plant-reminder/config"
 	"plant-reminder/constants"
 	"plant-reminder/dto"
 	"plant-reminder/models"
@@ -19,11 +18,23 @@ var scheduler *gocron.Scheduler
 
 type ReminderService struct {
 	plantService *PlantService
+	db           *gorm.DB
 }
 
-func NewReminderService() *ReminderService {
+type ReminderServiceInterface interface {
+	CreateReminder(reminderRequest *dto.ReminderCreateRequest, plantId int64, userID int64) (*dto.ReminderResponse, error)
+	GetReminder(reminderID int64, userID int64) (*dto.ReminderResponse, error)
+	GetPlantReminders(plantID int64, userID int64) ([]dto.ReminderResponse, error)
+	GetUserReminders(userID int64) ([]dto.ReminderResponse, error)
+	UpdateReminder(reminder *dto.ReminderUpdateRequest, userID int64) error
+	DeleteReminder(reminderID int64, userID int64) error
+	TestReminder(userId int64) error
+}
+
+func NewReminderService(ps *PlantService, db *gorm.DB) *ReminderService {
 	return &ReminderService{
-		plantService: NewPlantService(),
+		plantService: ps,
+		db:           db,
 	}
 }
 
@@ -36,7 +47,7 @@ func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequ
 	reminder := reminderRequest.ToModel(userID)
 
 	var existing models.Reminder
-	err = config.DB.
+	err = s.db.
 		Where("plant_id = ? AND time_of_day = ? AND repeat = ?", plantId, reminder.TimeOfDay, reminder.Repeat).
 		First(&existing).Error
 
@@ -53,7 +64,7 @@ func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequ
 
 	reminder.PlantID = plantId
 
-	result := config.DB.Create(reminder)
+	result := s.db.Create(reminder)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -81,17 +92,17 @@ func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequ
 		return err
 	}
 
-	result := config.DB.Model(&existingReminder).Updates(reminder)
+	result := s.db.Model(&existingReminder).Updates(reminder)
 	return result.Error
 }
 
 func (s *ReminderService) DeleteReminder(reminderID, userID int64) error {
 	var reminder models.Reminder
-	result := config.DB.Where("id = ? AND user_id = ?", reminderID, userID).First(&reminder)
+	result := s.db.Where("id = ? AND user_id = ?", reminderID, userID).First(&reminder)
 	if result.Error != nil {
 		return result.Error
 	}
-	result = config.DB.Delete(&reminder)
+	result = s.db.Delete(&reminder)
 	return result.Error
 }
 
@@ -103,7 +114,7 @@ func (s *ReminderService) GetPlantReminders(plantID int64, userID int64) ([]dto.
 	if plantID == 0 {
 		return nil, errors.New("plantID must be set")
 	}
-	result := config.DB.Where("plant_id = ? AND user_id = ?", plantID, userID).Find(&reminders)
+	result := s.db.Where("plant_id = ? AND user_id = ?", plantID, userID).Find(&reminders)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -116,7 +127,7 @@ func (s *ReminderService) GetUserReminders(userID int64) ([]dto.ReminderResponse
 	if userID == 0 {
 		return nil, errors.New("userID must be set")
 	}
-	result := config.DB.Preload("Plant").Where("user_id = ?", userID).Find(&reminders)
+	result := s.db.Preload("Plant").Where("user_id = ?", userID).Find(&reminders)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -154,7 +165,7 @@ func (s *ReminderService) getReminder(reminderID int64, userID int64, plantID in
 	if reminderID == 0 {
 		return models.Reminder{}, errors.New("reminderID must be set")
 	}
-	result := config.DB.Where("id = ? AND user_id = ? AND plant_id = ?", reminderID, userID, plantID).First(&reminder)
+	result := s.db.Where("id = ? AND user_id = ? AND plant_id = ?", reminderID, userID, plantID).First(&reminder)
 	return reminder, result.Error
 }
 
@@ -163,7 +174,7 @@ func (s *ReminderService) GetReminder(reminderID int64, userID int64) (*dto.Remi
 	if reminderID == 0 {
 		return nil, errors.New("reminderID must be set")
 	}
-	result := config.DB.Where("id = ? AND user_id = ?", reminderID, userID).First(&reminder)
+	result := s.db.Where("id = ? AND user_id = ?", reminderID, userID).First(&reminder)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -172,23 +183,70 @@ func (s *ReminderService) GetReminder(reminderID int64, userID int64) (*dto.Remi
 	return response, nil
 }
 
+func (s *ReminderService) TestReminder(userID int64) error {
+	var user models.User
+	s.db.Where("id = ?", userID).First(&user)
+	if user.PushToken == "" {
+		return errors.New("user doesn't have push token")
+	}
+	utils.SendMessage(user.PushToken, "test")
+	return nil
+}
+
 func (s *ReminderService) calculateNextTriggerTime(reminder *models.Reminder) error {
 	now := time.Now()
+
 	t, err := time.Parse("15:04", reminder.TimeOfDay)
 	if err != nil {
 		return fmt.Errorf("invalid time format, expected HH:mm: %w", err)
 	}
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), 0, 0, time.Local)
-	if nextTime.Before(now) {
-		switch reminder.Repeat {
-		case constants.RepeatDaily:
+	nextTime := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		t.Hour(), t.Minute(), 0, 0, time.Local,
+	)
+
+	switch reminder.Repeat {
+	case constants.RepeatDaily:
+		if nextTime.Before(now) {
 			nextTime = nextTime.Add(24 * time.Hour)
-		case constants.RepeatWeekly:
-			nextTime = nextTime.Add(7 * 24 * time.Hour)
-		case constants.RepeatMonthly:
-			nextTime = nextTime.AddDate(0, 1, 0)
 		}
+
+	case constants.RepeatWeekly:
+		if reminder.DayOfWeek == nil {
+			return errors.New("weekly reminder requires dayOfWeek")
+		}
+		targetWeekday := time.Weekday(*reminder.DayOfWeek)
+
+		daysUntil := (int(targetWeekday) - int(now.Weekday()) + 7) % 7
+		if daysUntil == 0 && nextTime.Before(now) {
+			daysUntil = 7
+		}
+		nextTime = nextTime.AddDate(0, 0, daysUntil)
+
+	case constants.RepeatMonthly:
+		if reminder.DayOfMonth == nil {
+			return errors.New("monthly reminder requires dayOfMonth")
+		}
+		day := int(*reminder.DayOfMonth)
+
+		daysInMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local).Day()
+		if day > daysInMonth {
+			day = daysInMonth
+		}
+
+		nextTime = time.Date(now.Year(), now.Month(), day, t.Hour(), t.Minute(), 0, 0, time.Local)
+		if nextTime.Before(now) {
+			nextMonth := now.AddDate(0, 1, 0)
+			daysInNextMonth := time.Date(nextMonth.Year(), nextMonth.Month()+1, 0, 0, 0, 0, 0, time.Local).Day()
+			if day > daysInNextMonth {
+				day = daysInNextMonth
+			}
+			nextTime = time.Date(nextMonth.Year(), nextMonth.Month(), day, t.Hour(), t.Minute(), 0, 0, time.Local)
+		}
+
+	default:
+		return fmt.Errorf("unsupported repeat type: %s", reminder.Repeat)
 	}
 
 	reminder.NextTriggerTime = nextTime
@@ -198,7 +256,7 @@ func (s *ReminderService) calculateNextTriggerTime(reminder *models.Reminder) er
 func (s *ReminderService) checkReminders(ch chan error) {
 	defer close(ch)
 	var reminders []models.Reminder
-	err := config.DB.
+	err := s.db.
 		Where("next_trigger_time <= ?", time.Now()).
 		Find(&reminders).Error
 
@@ -217,21 +275,18 @@ func (s *ReminderService) checkReminders(ch chan error) {
 	}
 	wg.Wait()
 
-	updatedReminders := utils.Map(reminders, func(item models.Reminder) models.Reminder {
-		switch item.Repeat {
-		case constants.RepeatDaily:
-			item.NextTriggerTime = item.NextTriggerTime.Add(24 * time.Hour)
-		case constants.RepeatWeekly:
-			item.NextTriggerTime = item.NextTriggerTime.Add(7 * 24 * time.Hour)
-		case constants.RepeatMonthly:
-			item.NextTriggerTime = item.NextTriggerTime.AddDate(0, 1, 0)
+	var updatedReminders []models.Reminder
+	for _, r := range reminders {
+		if err := s.calculateNextTriggerTime(&r); err != nil {
+			fmt.Println("failed to recalc nextTriggerTime:", err)
+			continue
 		}
-		return item
-	})
+		updatedReminders = append(updatedReminders, r)
+	}
 
 	var result *gorm.DB
 	if len(updatedReminders) != 0 {
-		result = config.DB.Save(&updatedReminders)
+		result = s.db.Save(&updatedReminders)
 	}
 
 	if result != nil {
@@ -243,9 +298,9 @@ func (s *ReminderService) checkReminders(ch chan error) {
 
 func (s *ReminderService) sendNotifications(plantID int64) {
 	var plant models.Plant
-	config.DB.Where("id = ?", plantID).First(&plant)
+	s.db.Where("id = ?", plantID).First(&plant)
 	var user models.User
-	config.DB.Where("id = ?", plant.UserID).First(&user)
+	s.db.Where("id = ?", plant.UserID).First(&user)
 	if user.PushToken != "" {
 		utils.SendMessage(user.PushToken, plant.Name)
 	}

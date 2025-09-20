@@ -1,6 +1,7 @@
 package container
 
 import (
+	"plant-reminder/config"
 	"plant-reminder/controllers"
 	"plant-reminder/service"
 )
@@ -17,9 +18,10 @@ type Application struct {
 }
 
 func NewApplication() *Application {
-	plantService := service.NewPlantService()
-	userService := service.NewUserService()
-	reminderService := service.NewReminderService()
+	db := config.DB
+	plantService := service.NewPlantService(db)
+	userService := service.NewUserService(db)
+	reminderService := service.NewReminderService(plantService, db)
 
 	healthController := controllers.NewHealthController()
 	plantController := controllers.NewPlantController(plantService)

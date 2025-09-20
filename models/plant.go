@@ -46,12 +46,12 @@ func (pi PlantIcon) IsValid() bool {
 }
 
 type Plant struct {
-	ID        int64  `gorm:"primaryKey"`
-	Name      string `validate:"required"`
+	ID        int64 `gorm:"primaryKey"`
+	Name      string
 	Note      string
-	TagColor  string `validate:"required"`
+	TagColor  string
 	UserID    int64
-	User      User       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" validate:"-"`
+	User      User       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Reminders []Reminder `gorm:"foreignKey:PlantID;constraint:OnDelete:CASCADE"`
-	PlantIcon PlantIcon  `validate:"required"`
+	PlantIcon PlantIcon
 }
