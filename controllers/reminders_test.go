@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// MockReminderService is a mock implementation of ReminderService for testing
 type MockReminderService struct {
 	CreateReminderFunc    func(*dto.ReminderCreateRequest, int64, int64) (*dto.ReminderResponse, error)
 	GetReminderFunc       func(int64, int64) (*dto.ReminderResponse, error)
@@ -21,6 +20,7 @@ type MockReminderService struct {
 	GetUserRemindersFunc  func(int64) ([]dto.ReminderResponse, error)
 	UpdateReminderFunc    func(*dto.ReminderUpdateRequest, int64) error
 	DeleteReminderFunc    func(int64, int64) error
+	TestReminderFunc      func(userId int64) error
 }
 
 func (m *MockReminderService) CreateReminder(req *dto.ReminderCreateRequest, plantID int64, userID int64) (*dto.ReminderResponse, error) {
@@ -65,6 +65,13 @@ func (m *MockReminderService) DeleteReminder(reminderID, userID int64) error {
 	return nil
 }
 
+func (m *MockReminderService) TestReminder(userId int64) error {
+	if m.TestReminderFunc != nil {
+		return m.TestReminderFunc(userId)
+	}
+	return nil
+}
+
 func setupReminderController(mockService *MockReminderService) (*ReminderController, *gin.Engine) {
 	router := setupTestRouter()
 	controller := &ReminderController{reminderService: mockService}
@@ -82,18 +89,13 @@ func TestReminderController_AddReminder_Success(t *testing.T) {
 		NextTriggerTime: time.Now(),
 	}
 
-	// Mock successful creation but bypass validation by testing the service call directly
 	mockService.CreateReminderFunc = func(req *dto.ReminderCreateRequest, plantID int64, userID int64) (*dto.ReminderResponse, error) {
-		// Just check that the method gets called correctly
 		return expectedResponse, nil
 	}
 
-	// Test that we can create the controller and it has the right service
 	if controller == nil {
 		t.Error("Expected non-nil controller")
-	}
-
-	if controller.reminderService == nil {
+	} else if controller.reminderService == nil {
 		t.Error("Expected non-nil reminder service")
 	}
 }
@@ -107,7 +109,6 @@ func TestReminderController_AddReminder_InvalidPlantID(t *testing.T) {
 		controller.AddReminder(c)
 	})
 
-	// Create JSON manually to ensure proper RepeatType formatting
 	jsonData := []byte(`{
 		"plantId": 1,
 		"timeOfDay": "08:00",
@@ -198,5 +199,28 @@ func TestReminderController_DeleteReminder_Success(t *testing.T) {
 
 	if w.Code != http.StatusNoContent {
 		t.Errorf("Expected status %d, got %d", http.StatusNoContent, w.Code)
+	}
+}
+
+func TestReminderController_TestReminder_Success(t *testing.T) {
+	mockService := &MockReminderService{}
+	controller, router := setupReminderController(mockService)
+	mockService.TestReminderFunc = func(userID int64) error {
+		if userID != 123 {
+			t.Errorf("Expected userID 123, got %d", userID)
+		}
+		return nil
+	}
+	router.POST("/reminders/test", func(c *gin.Context) {
+		c.Set("userID", int64(123))
+		controller.TestReminder(c)
+	})
+
+	req, _ := http.NewRequest("POST", "/reminders/test", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 }

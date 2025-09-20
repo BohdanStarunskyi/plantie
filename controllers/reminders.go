@@ -101,6 +101,17 @@ func (rc *ReminderController) DeleteReminder(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+func (rc *ReminderController) TestReminder(ctx *gin.Context) {
+	userId := ctx.GetInt64("userID")
+	err := rc.reminderService.TestReminder(userId)
+	if err != nil {
+		log.Printf("DeleteReminder: failed to test reminder: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"staus": "ok"})
+}
+
 func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
 	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
