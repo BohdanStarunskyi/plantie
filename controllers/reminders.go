@@ -108,7 +108,7 @@ func (rc *ReminderController) TestReminder(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"staus": "ok"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
