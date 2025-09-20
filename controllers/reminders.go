@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"plant-reminder/dto"
 	"plant-reminder/service"
-	"plant-reminder/utils"
 	"strconv"
 
 	"log"
@@ -38,7 +37,7 @@ func (rc *ReminderController) AddReminder(ctx *gin.Context) {
 		return
 	}
 
-	if err := utils.Validate.Struct(reminderRequest); err != nil {
+	if err := reminderRequest.Validate(); err != nil {
 		log.Printf("AddReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -101,6 +100,17 @@ func (rc *ReminderController) DeleteReminder(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+func (rc *ReminderController) TestReminder(ctx *gin.Context) {
+	userId := ctx.GetInt64("userID")
+	err := rc.reminderService.TestReminder(userId)
+	if err != nil {
+		log.Printf("DeleteReminder: failed to test reminder: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 	userID := ctx.GetInt64("userID")
 	plantID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
@@ -123,7 +133,7 @@ func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	if err := utils.Validate.Struct(reminderRequest); err != nil {
+	if err := reminderRequest.Validate(); err != nil {
 		log.Printf("UpdateReminder: validation failed: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

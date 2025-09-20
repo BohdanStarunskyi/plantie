@@ -37,4 +37,5 @@ func SetupRouter(engine *gin.Engine, app *container.Application) {
 	authGroup.PUT("/plant/:id/reminder", reminderController.UpdateReminder)
 	authGroup.GET("/plant/:id/reminders", reminderController.GetPlantReminders)
 	authGroup.GET("/plant/reminders", reminderController.GetAllReminders)
+	authGroup.POST("/reminders/test", reminderController.TestReminder)
 }

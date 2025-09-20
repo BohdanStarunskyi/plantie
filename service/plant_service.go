@@ -2,16 +2,28 @@ package service
 
 import (
 	"errors"
-	"plant-reminder/config"
 	"plant-reminder/dto"
 	"plant-reminder/models"
+
+	"gorm.io/gorm"
 )
 
 type PlantService struct {
+	db *gorm.DB
 }
 
-func NewPlantService() *PlantService {
-	return &PlantService{}
+type PlantServiceInterface interface {
+	CreatePlant(plantRequest *dto.PlantCreateRequest, userID int64) (*dto.PlantResponse, error)
+	GetPlant(plantID int64, userID int64) (*dto.PlantResponse, error)
+	GetPlants(userID int64) ([]dto.PlantResponse, error)
+	UpdatePlant(plant *dto.PlantUpdateRequest, plantId int64, userID int64) error
+	DeletePlant(userID int64, plantID int64) error
+}
+
+func NewPlantService(db *gorm.DB) *PlantService {
+	return &PlantService{
+		db: db,
+	}
 }
 
 func (s *PlantService) CreatePlant(plantRequest *dto.PlantCreateRequest, userID int64) (*dto.PlantResponse, error) {
@@ -21,7 +33,7 @@ func (s *PlantService) CreatePlant(plantRequest *dto.PlantCreateRequest, userID 
 		return nil, err
 	}
 
-	result := config.DB.Create(plant)
+	result := s.db.Create(plant)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -32,7 +44,7 @@ func (s *PlantService) CreatePlant(plantRequest *dto.PlantCreateRequest, userID 
 
 func (s *PlantService) UpdatePlant(plant *dto.PlantUpdateRequest, plantId int64, userID int64) error {
 	var existingPlant models.Plant
-	result := config.DB.Where("id = ? AND user_id = ?", plantId, userID).First(&existingPlant)
+	result := s.db.Where("id = ? AND user_id = ?", plantId, userID).First(&existingPlant)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -40,18 +52,18 @@ func (s *PlantService) UpdatePlant(plant *dto.PlantUpdateRequest, plantId int64,
 	updateModel := plant.ToModel(userID)
 	updateModel.ID = plantId
 
-	result = config.DB.Model(&existingPlant).Updates(updateModel)
+	result = s.db.Model(&existingPlant).Updates(updateModel)
 	return result.Error
 }
 
 func (s *PlantService) DeletePlant(userID int64, plantID int64) error {
 	var plant models.Plant
-	result := config.DB.Where("id = ? AND user_id = ?", plantID, userID).First(&plant)
+	result := s.db.Where("id = ? AND user_id = ?", plantID, userID).First(&plant)
 	if result.Error != nil {
 		return result.Error
 	}
 
-	result = config.DB.Delete(&plant)
+	result = s.db.Delete(&plant)
 	return result.Error
 }
 
@@ -60,7 +72,7 @@ func (s *PlantService) GetPlant(plantID int64, userID int64) (*dto.PlantResponse
 	if plantID == 0 {
 		return nil, errors.New("plantID must be set")
 	}
-	result := config.DB.Where("id = ? AND user_id = ?", plantID, userID).First(&plant)
+	result := s.db.Where("id = ? AND user_id = ?", plantID, userID).First(&plant)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -74,7 +86,7 @@ func (s *PlantService) GetPlants(userID int64) ([]dto.PlantResponse, error) {
 	if userID == 0 {
 		return nil, errors.New("userID must be set")
 	}
-	result := config.DB.Where("user_id = ?", userID).Find(&plants)
+	result := s.db.Where("user_id = ?", userID).Find(&plants)
 	if result.Error != nil {
 		return nil, result.Error
 	}

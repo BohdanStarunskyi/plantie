@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"plant-reminder/config"
 	"plant-reminder/dto"
 	"plant-reminder/models"
 	"plant-reminder/utils"
@@ -11,10 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserService struct{}
+type UserService struct {
+	db *gorm.DB
+}
 
-func NewUserService() *UserService {
-	return &UserService{}
+type UserServiceInterface interface {
+	CreateUser(userRequest *dto.UserCreateRequest) (*dto.AuthResponse, error)
+	VerifyUser(email, password string) (*dto.AuthResponse, error)
+	SetPushToken(userID, token string) error
+	DeleteUser(userID int64) error
+	GetUser(userID int64) (*dto.UserResponse, error)
+}
+
+func NewUserService(db *gorm.DB) *UserService {
+	return &UserService{
+		db: db,
+	}
 }
 
 func (s *UserService) CreateUser(userRequest *dto.UserCreateRequest) (*dto.AuthResponse, error) {
@@ -31,7 +42,7 @@ func (s *UserService) CreateUser(userRequest *dto.UserCreateRequest) (*dto.AuthR
 	user.CreationDate = time.Now()
 	user.Password = hashedPassword
 
-	result := config.DB.Create(user)
+	result := s.db.Create(user)
 	if result.Error != nil {
 		return nil, errors.New("error while writing to database")
 	}
@@ -58,7 +69,7 @@ func (s *UserService) CreateUser(userRequest *dto.UserCreateRequest) (*dto.AuthR
 
 func (s *UserService) VerifyUser(email string, password string) (*dto.AuthResponse, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := s.db.Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -88,7 +99,7 @@ func (s *UserService) VerifyUser(email string, password string) (*dto.AuthRespon
 
 func (s *UserService) GetUser(id int64) (*dto.UserResponse, error) {
 	var user models.User
-	result := config.DB.Where("id = ?", id).First(&user)
+	result := s.db.Where("id = ?", id).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -117,12 +128,12 @@ func (s *UserService) UpdateUser(user *models.User) error {
 		updates["push_token"] = user.PushToken
 	}
 
-	result := config.DB.Model(user).Updates(updates)
+	result := s.db.Model(user).Updates(updates)
 	return result.Error
 }
 
 func (s *UserService) SetPushToken(userID string, token string) error {
-	result := config.DB.Model(&models.User{}).
+	result := s.db.Model(&models.User{}).
 		Where("id = ?", userID).
 		Update("push_token", token)
 	return result.Error
@@ -130,18 +141,18 @@ func (s *UserService) SetPushToken(userID string, token string) error {
 
 func (s *UserService) DeleteUser(userID int64) error {
 	var user models.User
-	result := config.DB.Where("id = ?", userID).First(&user)
+	result := s.db.Where("id = ?", userID).First(&user)
 	if result.Error != nil {
 		return result.Error
 	}
 
-	result = config.DB.Delete(&user)
+	result = s.db.Delete(&user)
 	return result.Error
 }
 
 func (s *UserService) userExists(email string) (bool, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := s.db.Where("email = ?", email).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return false, nil
 	}
