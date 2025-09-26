@@ -59,9 +59,6 @@ This project uses GitHub Actions for continuous integration. The CI pipeline:
 - Runs on pushes to `main` and `development` branches  
 - Tests the code with `go test ./...`
 - Generates coverage reports
-- Prevents merging PRs if tests fail (requires branch protection setup)
-
-**Note**: To complete the setup and enforce test passing before merging, see [`.github/BRANCH_PROTECTION_SETUP.md`](.github/BRANCH_PROTECTION_SETUP.md) for branch protection configuration instructions.
 
 ## API overview
 
@@ -162,7 +159,7 @@ All endpoints (except /ping, /login, /signup, /refresh) require Authorization: B
 - PUT /plant/:id/reminder
   - Body:
     ```json
-    { "id": 10, "plantId": 1, "repeatType": "weekly", "timeOfDay": "08:00", "dayOfWeek": 3 }
+    { "id": 10, "repeatType": "weekly", "timeOfDay": "08:00", "dayOfWeek": 3 }
     ```
   - Response:
     ```json
