@@ -18,7 +18,7 @@ type MockReminderService struct {
 	GetReminderFunc       func(int64, int64) (*dto.ReminderResponse, error)
 	GetPlantRemindersFunc func(int64, int64) ([]dto.ReminderResponse, error)
 	GetUserRemindersFunc  func(int64) ([]dto.ReminderResponse, error)
-	UpdateReminderFunc    func(*dto.ReminderUpdateRequest, int64) error
+	UpdateReminderFunc    func(*dto.ReminderUpdateRequest, int64, int64) error
 	DeleteReminderFunc    func(int64, int64) error
 	TestReminderFunc      func(userId int64) error
 }
@@ -51,9 +51,9 @@ func (m *MockReminderService) GetUserReminders(userID int64) ([]dto.ReminderResp
 	return nil, nil
 }
 
-func (m *MockReminderService) UpdateReminder(req *dto.ReminderUpdateRequest, userID int64) error {
+func (m *MockReminderService) UpdateReminder(req *dto.ReminderUpdateRequest, userID int64, plantID int64) error {
 	if m.UpdateReminderFunc != nil {
-		return m.UpdateReminderFunc(req, userID)
+		return m.UpdateReminderFunc(req, userID, plantID)
 	}
 	return nil
 }

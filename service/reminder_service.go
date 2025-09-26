@@ -26,7 +26,7 @@ type ReminderServiceInterface interface {
 	GetReminder(reminderID int64, userID int64) (*dto.ReminderResponse, error)
 	GetPlantReminders(plantID int64, userID int64) ([]dto.ReminderResponse, error)
 	GetUserReminders(userID int64) ([]dto.ReminderResponse, error)
-	UpdateReminder(reminder *dto.ReminderUpdateRequest, userID int64) error
+	UpdateReminder(reminder *dto.ReminderUpdateRequest, userID int64, plantId int64) error
 	DeleteReminder(reminderID int64, userID int64) error
 	TestReminder(userId int64) error
 }
@@ -73,12 +73,12 @@ func (s *ReminderService) CreateReminder(reminderRequest *dto.ReminderCreateRequ
 	return response, nil
 }
 
-func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequest, userID int64) error {
+func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequest, userID int64, plantID int64) error {
 	if reminderRequest.ID == 0 {
 		return errors.New("reminder ID must be set")
 	}
 
-	existingReminder, err := s.getReminder(reminderRequest.ID, userID, reminderRequest.PlantID)
+	existingReminder, err := s.getReminder(reminderRequest.ID, userID, plantID)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequ
 		return errors.New("not enough rights")
 	}
 
-	reminder := reminderRequest.ToModel(userID)
+	reminder := reminderRequest.ToModel(userID, plantID)
 	if err := s.calculateNextTriggerTime(reminder); err != nil {
 		return err
 	}

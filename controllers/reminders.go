@@ -139,9 +139,7 @@ func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	reminderRequest.PlantID = plantID
-
-	if err := rc.reminderService.UpdateReminder(&reminderRequest, userID); err != nil {
+	if err := rc.reminderService.UpdateReminder(&reminderRequest, userID, plantID); err != nil {
 		log.Printf("UpdateReminder: failed to update reminder: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
