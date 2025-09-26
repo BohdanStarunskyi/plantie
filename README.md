@@ -37,6 +37,32 @@ go mod download
 go run .
 ```
 
+## Testing
+
+Run the test suite:
+
+```bash
+go test ./... -v
+```
+
+Run tests with coverage:
+
+```bash
+go test ./... -race -coverprofile=coverage.out -covermode=atomic
+```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration. The CI pipeline:
+
+- Runs on all pull requests to `main` and `development` branches
+- Runs on pushes to `main` and `development` branches  
+- Tests the code with `go test ./...`
+- Generates coverage reports
+- Prevents merging PRs if tests fail (requires branch protection setup)
+
+**Note**: To complete the setup and enforce test passing before merging, see [`.github/BRANCH_PROTECTION_SETUP.md`](.github/BRANCH_PROTECTION_SETUP.md) for branch protection configuration instructions.
+
 ## API overview
 
 All endpoints (except /ping, /login, /signup, /refresh) require Authorization: Bearer <access_token>.
