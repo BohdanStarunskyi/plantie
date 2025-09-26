@@ -78,7 +78,7 @@ func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequ
 		return errors.New("reminder ID must be set")
 	}
 
-	existingReminder, err := s.getReminder(reminderRequest.ID, userID, plantID)
+	existingReminder, err := s.getReminder(reminderRequest.ID)
 	if err != nil {
 		return err
 	}
@@ -160,12 +160,12 @@ func (s *ReminderService) SetReminders() error {
 	return nil
 }
 
-func (s *ReminderService) getReminder(reminderID int64, userID int64, plantID int64) (models.Reminder, error) {
+func (s *ReminderService) getReminder(reminderID int64) (models.Reminder, error) {
 	var reminder models.Reminder
 	if reminderID == 0 {
 		return models.Reminder{}, errors.New("reminderID must be set")
 	}
-	result := s.db.Where("id = ? AND user_id = ? AND plant_id = ?", reminderID, userID, plantID).First(&reminder)
+	result := s.db.Where("id = ?", reminderID).First(&reminder)
 	return reminder, result.Error
 }
 
