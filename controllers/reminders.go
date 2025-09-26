@@ -139,18 +139,12 @@ func (rc *ReminderController) UpdateReminder(ctx *gin.Context) {
 		return
 	}
 
-	if err := rc.reminderService.UpdateReminder(&reminderRequest, userID, plantID); err != nil {
-		log.Printf("UpdateReminder: failed to update reminder: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	updatedReminder, err := rc.reminderService.GetReminder(reminderRequest.ID, userID)
+	resp, err := rc.reminderService.UpdateReminder(&reminderRequest, userID, plantID)
 	if err != nil {
-		log.Printf("UpdateReminder: failed to get updated reminder: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("UpdateReminder: failed to update reminder: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"reminder": updatedReminder})
+	ctx.JSON(http.StatusOK, gin.H{"reminder": resp})
 }
