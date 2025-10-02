@@ -89,11 +89,23 @@ func (s *ReminderService) UpdateReminder(reminderRequest *dto.ReminderUpdateRequ
 
 	reminder := reminderRequest.ToModel(userID, plantID)
 
+	var existing models.Reminder
+	err = s.db.
+		Where("plant_id = ? AND time_of_day = ? AND repeat = ? AND id != ?", plantID, reminder.TimeOfDay, reminder.Repeat, reminderRequest.ID).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("reminder with same time and repeat period already exists")
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to check existing reminders: %w", err)
+	}
+
 	if err := s.calculateNextTriggerTime(reminder); err != nil {
 		return nil, err
 	}
 
-	result := s.db.Model(&existingReminder).Updates(reminder)
+	result := s.db.Model(&existingReminder).Save(reminder)
 	response := (&dto.ReminderResponse{}).FromModel(reminder)
 	return response, result.Error
 }
